@@ -1,0 +1,10 @@
+HC-06
+
+line ending
+연결확인 -> AT
+이름 설정 (dew)  ->  AT+NAMEdew
+비밀번호 설정(0000) ->  AT+PIN0000
+
+HM-10
+
+no
