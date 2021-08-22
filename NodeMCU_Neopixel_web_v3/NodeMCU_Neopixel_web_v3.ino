@@ -16,8 +16,10 @@ LiquidCrystal_I2C lcd(0x27,16,2);//1602
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 #ifndef STASSID
-#define STASSID "iptime245"
-#define STAPSK  "pw101485"
+//#define STASSID "iptime245"
+//#define STAPSK  "pw101485"
+#define STASSID "LDH"
+#define STAPSK  "ehdgml43"
 #endif
 
 const char* ssid     = STASSID;

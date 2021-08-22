@@ -19,10 +19,16 @@
 
 #include "camera_pins.h"
 
-const char* ssid = "LDH";
-const char* password = "ehdgml43";
+//const char* ssid = "LDH";
+//const char* password = "ehdgml43";
+
+const char* ssid = "214";
+const char* password = "12345678";
 
 void startCameraServer();
+
+uint8_t MAC_array[6];
+char MAC_char[18];
 
 void setup() {
   Serial.begin(115200);
@@ -48,8 +54,11 @@ void setup() {
   config.pin_sscb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
+//  config.xclk_freq_hz = 20000000;
+  config.xclk_freq_hz = 10000000;
   config.pixel_format = PIXFORMAT_JPEG;
+
+
   
   // if PSRAM IC present, init with UXGA resolution and higher JPEG quality
   //                      for larger pre-allocated frame buffer.
@@ -104,6 +113,14 @@ void setup() {
   Serial.print("Camera Ready! Use 'http://");
   Serial.print(WiFi.localIP());
   Serial.println("' to connect");
+
+  WiFi.macAddress(MAC_array);
+  for (int i = 0; i < sizeof(MAC_array); ++i){
+    sprintf(MAC_char,"%s%02x:",MAC_char,MAC_array[i]);
+  }
+  
+  Serial.println(MAC_char);
+  
 }
 
 void loop() {
