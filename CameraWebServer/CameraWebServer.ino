@@ -25,6 +25,9 @@
 const char* ssid = "214";
 const char* password = "12345678";
 
+//const char* ssid = "LGU+POLY";
+//const char* password = "@Polytech";
+
 void startCameraServer();
 
 uint8_t MAC_array[6];

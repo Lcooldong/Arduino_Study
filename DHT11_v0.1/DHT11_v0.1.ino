@@ -1,22 +1,28 @@
+#include<dht.h> 
+dht DHT;
+#define DHT11_PIN 2
+#define VCC 3
+#define GND 4
+float hum; //Stores humidity value 
+float temp; //Stores temperature value 
 
-
-
-#include <dht11.h>
-
-dht11 DHT11;
-#define DHT11PIN 4
-
-void setup() {
+void setup(){ 
   Serial.begin(9600);
-
+  pinMode(VCC, OUTPUT);
+  pinMode(GND, OUTPUT);
+  digitalWrite(VCC, HIGH);
+  digitalWrite(GND, LOW);
 }
-
 void loop() {
-  int Save = DHT11.read(DHT11PIN);
-  Serial.print(DHT11.temperature);
-  Serial.print(",");
-  Serial.print(DHT11.humidity);
-  Serial.print(".");
-
-  delay(1000);
+  DHT.read11(DHT11_PIN);
+  hum = DHT.humidity;
+  temp = DHT.temperature;
+  Serial.print("Humidity: ");
+  Serial.print(hum);
+  Serial.print(" %, Temp: ");
+  Serial.print(temp);
+  Serial.println(" Celsius");
+  delay(2000); //Delay 2 sec. }
 }
+
+//습도가 부정확함
