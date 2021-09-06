@@ -1,37 +1,28 @@
 #include "esp_camera.h"
 #include <WiFi.h>
+#include <ArduinoWebsockets.h>
 
 //
-// WARNING!!! PSRAM IC required for UXGA resolution and high JPEG quality
-//            Ensure ESP32 Wrover Module or other board with PSRAM is selected
-//            Partial images will be transmitted if image exceeds buffer size
+// WARNING!!! Make sure that you have either selected ESP32 Wrover Module,
+//            or another board which has PSRAM enabled
 //
 
 // Select camera model
-//#define CAMERA_MODEL_WROVER_KIT // Has PSRAM
-//#define CAMERA_MODEL_ESP_EYE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_PSRAM // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_V2_PSRAM // M5Camera version B Has PSRAM
-//#define CAMERA_MODEL_M5STACK_WIDE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_ESP32CAM // No PSRAM
-#define CAMERA_MODEL_AI_THINKER // Has PSRAM
-//#define CAMERA_MODEL_TTGO_T_JOURNAL // No PSRAM
+//#define CAMERA_MODEL_WROVER_KIT
+//#define CAMERA_MODEL_ESP_EYE
+//#define CAMERA_MODEL_M5STACK_PSRAM
+//#define CAMERA_MODEL_M5STACK_WIDE
+#define CAMERA_MODEL_AI_THINKER
 
 #include "camera_pins.h"
 
-//const char* ssid = "LDH";
-//const char* password = "ehdgml43";
-
 const char* ssid = "214";
 const char* password = "12345678";
+const char* websocket_server_host = "192.168.0.9";
+const uint16_t websocket_server_port = 8888;
 
-//const char* ssid = "LGU+POLY";
-//const char* password = "@Polytech";
-
-void startCameraServer();
-
-uint8_t MAC_array[6];
-char MAC_char[18];
+using namespace websockets;
+WebsocketsClient client;
 
 void setup() {
   Serial.begin(115200);
@@ -57,17 +48,12 @@ void setup() {
   config.pin_sscb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-//  config.xclk_freq_hz = 20000000;
   config.xclk_freq_hz = 10000000;
   config.pixel_format = PIXFORMAT_JPEG;
-
-
-  
-  // if PSRAM IC present, init with UXGA resolution and higher JPEG quality
-  //                      for larger pre-allocated frame buffer.
+  //init with high specs to pre-allocate larger buffers
   if(psramFound()){
-    config.frame_size = FRAMESIZE_UXGA;
-    config.jpeg_quality = 10;
+    config.frame_size = FRAMESIZE_VGA;
+    config.jpeg_quality = 40;
     config.fb_count = 2;
   } else {
     config.frame_size = FRAMESIZE_SVGA;
@@ -75,10 +61,6 @@ void setup() {
     config.fb_count = 1;
   }
 
-#if defined(CAMERA_MODEL_ESP_EYE)
-  pinMode(13, INPUT_PULLUP);
-  pinMode(14, INPUT_PULLUP);
-#endif
 
   // camera init
   esp_err_t err = esp_camera_init(&config);
@@ -87,20 +69,7 @@ void setup() {
     return;
   }
 
-  sensor_t * s = esp_camera_sensor_get();
-  // initial sensors are flipped vertically and colors are a bit saturated
-  if (s->id.PID == OV3660_PID) {
-    s->set_vflip(s, 1); // flip it back
-    s->set_brightness(s, 1); // up the brightness just a bit
-    s->set_saturation(s, -2); // lower the saturation
-  }
-  // drop down frame size for higher initial frame rate
-  s->set_framesize(s, FRAMESIZE_QVGA);
-
-#if defined(CAMERA_MODEL_M5STACK_WIDE) || defined(CAMERA_MODEL_M5STACK_ESP32CAM)
-  s->set_vflip(s, 1);
-  s->set_hmirror(s, 1);
-#endif
+ 
 
   WiFi.begin(ssid, password);
 
@@ -111,22 +80,30 @@ void setup() {
   Serial.println("");
   Serial.println("WiFi connected");
 
-  startCameraServer();
-
   Serial.print("Camera Ready! Use 'http://");
   Serial.print(WiFi.localIP());
   Serial.println("' to connect");
 
-  WiFi.macAddress(MAC_array);
-  for (int i = 0; i < sizeof(MAC_array); ++i){
-    sprintf(MAC_char,"%s%02x:",MAC_char,MAC_array[i]);
+  while(!client.connect(websocket_server_host, websocket_server_port, "/")){
+    delay(500);
+    Serial.print(".");
   }
-  
-  Serial.println(MAC_char);
-  
+  Serial.println("Websocket Connected!");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  delay(10000);
+  camera_fb_t *fb = esp_camera_fb_get();
+  if(!fb){
+    Serial.println("Camera capture failed");
+    esp_camera_fb_return(fb);
+    return;
+  }
+
+  if(fb->format != PIXFORMAT_JPEG){
+    Serial.println("Non-JPEG data not implemented");
+    return;
+  }
+
+  client.sendBinary((const char*) fb->buf, fb->len);
+  esp_camera_fb_return(fb);
 }
