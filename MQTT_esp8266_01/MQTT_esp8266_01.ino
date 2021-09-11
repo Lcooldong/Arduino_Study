@@ -23,8 +23,8 @@
 
 // Update these with values suitable for your network.
 
-const char* ssid = "........";
-const char* password = "........";
+const char* ssid = "214ho";
+const char* password = "12345678";
 const char* mqtt_server = "broker.mqtt-dashboard.com";
 
 WiFiClient espClient;
@@ -58,6 +58,8 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
+
+// 구독(subscribe) 받아온 payload 구현부분
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
@@ -89,9 +91,9 @@ void reconnect() {
     if (client.connect(clientId.c_str())) {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      client.publish("outTopic", "hello world");
+      client.publish("214hoSmartHome/out", "hello 214ho");    // 재연결 브로커로 송신(publish, payload)
       // ... and resubscribe
-      client.subscribe("inTopic");
+      client.subscribe("214hoSmartHome/in");  // 재연결 구독(subscribe)->브로커에서 수신(payload 받아옴)
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -121,9 +123,9 @@ void loop() {
   if (now - lastMsg > 2000) {
     lastMsg = now;
     ++value;
-    snprintf (msg, MSG_BUFFER_SIZE, "hello world #%ld", value);
+    snprintf (msg, MSG_BUFFER_SIZE, "hello 214ho #%ld", value);
     Serial.print("Publish message: ");
     Serial.println(msg);
-    client.publish("outTopic", msg);
+    client.publish("214hoSmartHome/out", msg);  // 브로커로 송신(publish, payload)
   }
 }
