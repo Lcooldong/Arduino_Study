@@ -2,20 +2,20 @@
 // D1,2,5,6,7 제한없이 사용가능
 #include "DHT.h"
 
-#define DHTPIN D1   // DHT11이 연결된 핀
-#define VCC D6    //외부 전원 쓰는 것이 좋음 잘 연결 안됨
-#define GND D7
+#define DHTPIN 15   // DHT11이 연결된 핀
+//#define VCC D6    //외부 전원 쓰는 것이 좋음 잘 연결 안됨
+//#define GND D7
 
 #define DHTTYPE DHT11   // DHT 11, DHT시리즈중 11을 선택합니다.
 
 DHT dht(DHTPIN, DHTTYPE);
 
 void setup() {
-  Serial.begin(9600);
-  pinMode(VCC, OUTPUT);
-  pinMode(GND, OUTPUT);
-  digitalWrite(VCC, HIGH);
-  digitalWrite(GND, LOW);
+  Serial.begin(115200);
+//  pinMode(VCC, OUTPUT);
+//  pinMode(GND, OUTPUT);
+//  digitalWrite(VCC, HIGH);
+//  digitalWrite(GND, LOW);
   Serial.println("DHTxx test!");
 
   dht.begin();
