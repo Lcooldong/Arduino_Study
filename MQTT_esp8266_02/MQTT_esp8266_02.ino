@@ -2,8 +2,8 @@
 #include <PubSubClient.h>
 
 
-const char* ssid = "IT";
-const char* password = "";
+const char* ssid = "LGU+_POLY";
+const char* password = "@Polytech";
 const char* mqtt_server = "broker.mqtt-dashboard.com";
 
 WiFiClient espClient;
@@ -102,7 +102,7 @@ void loop() {
   if (now - lastMsg > 2000) {
     lastMsg = now;
     ++value;
-    snprintf (msg, MSG_BUFFER_SIZE, "hello 214ho #%ld", value);
+    snprintf (msg, MSG_BUFFER_SIZE, "%ld", value);
     Serial.print("Publish message: ");
     Serial.println(msg);
     client.publish("214hoSmartHome/out", msg);  // 브로커로 송신(publish, payload)
