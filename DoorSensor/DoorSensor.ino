@@ -1,3 +1,5 @@
+// 입력핀 : 0->1 (VCC 필요) 풀다운
+// 입력핀 : 1->0 (GND 필요) 풀업
 #define Reed 13 // D13, GND
 #define LED  15
 
@@ -20,6 +22,7 @@ void loop() {
     //Serial.println("close");
     doorFlag = 1;
     closedTime = millis();
+    digitalWrite(LED, LOW);
   }else{
     //Serial.println("open");
     doorBell();
@@ -50,6 +53,7 @@ void doorBell(){
     delay(100);
     if(openedTime >= interval){ //3초보다 커졌을때
       Serial.println("문열림");
+      digitalWrite(LED, HIGH);
       doorFlag = 0;
     }
   }
