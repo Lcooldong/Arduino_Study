@@ -1,4 +1,7 @@
 #define BUILTIN_BTN 3
+#define ON_OFF_PIN 4
+#define RESET_PIN 5
+#define STATUS_PIN 6
 
 #include <Arduino.h>
 #include "LittleFS.h"
@@ -33,8 +36,12 @@ WiFiClient client;
 
 Adafruit_MQTT_Client mqttClient(&client, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, AIO_KEY);
 Adafruit_MQTT_Publish pub(&mqttClient, "CoolDong/f/home.led", MQTT_QOS_0);
+
+Adafruit_MQTT_Publish pub_volt(&mqttClient, "CoolDong/f/pc-lcd.connection-volt", MQTT_QOS_0);
+
 Adafruit_MQTT_Subscribe sub_on_off(&mqttClient, "CoolDong/feeds/pc-lcd.on-off", MQTT_QOS_0);
 Adafruit_MQTT_Subscribe sub_reset(&mqttClient, "CoolDong/feeds/pc-lcd.reset", MQTT_QOS_0);
+
 void subOnOffcallback(char *str, uint16_t len);
 void subResetcallback(char *str, uint16_t len);
 
@@ -46,11 +53,17 @@ unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
 static int32_t count = 0;
 long current_Time = 0;
+bool status = false;
+
+
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Start ESP32");
   pinMode(BUILTIN_BTN, INPUT_PULLUP);
+  pinMode(STATUS_PIN, INPUT_PULLUP);
+  pinMode(ON_OFF_PIN, OUTPUT);
+  pinMode(RESET_PIN, OUTPUT);
   myNeopixel->InitNeopixel();
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
   if(!LittleFS.begin(true))
@@ -140,7 +153,16 @@ void loop()
       pub.publish(++count); // heartbeat
       Serial.println(count);
 
-      
+      float volt = analogRead(STATUS_PIN);
+      pub_volt.publish(volt);
+      if (volt > 1024)
+      {
+        status = true;
+      }
+      else
+      {
+        status = false;
+      }
       lastTime = millis();
     }
   }
@@ -168,8 +190,6 @@ void loop()
 }
 
 
-
-
 void subOnOffcallback(char *str, uint16_t len)
 {
 
@@ -190,11 +210,23 @@ void subOnOffcallback(char *str, uint16_t len)
 
     if (data == "On")
     {
-      Serial.println("Turn On PC");    
+      Serial.println("Turn On PC");
+      digitalWrite(ON_OFF_PIN, HIGH);
+      delay(100);
+      digitalWrite(ON_OFF_PIN, LOW);
+      delay(100);
+      digitalWrite(ON_OFF_PIN, HIGH);
     }
     else if (data == "Off")
     {
-      Serial.println("Turn Off PC"); 
+      if (status == true)
+      {
+        Serial.println("Turn Off PC");
+        digitalWrite(ON_OFF_PIN, LOW);
+        delay(5000);
+        digitalWrite(ON_OFF_PIN, HIGH);
+      }
+
     }
 
 }
@@ -219,7 +251,12 @@ void subResetcallback(char *str, uint16_t len)
 
     if (data == "Reset")
     {
-      Serial.println("Reset PC"); 
+      Serial.println("Reset PC");
+      digitalWrite(RESET_PIN, LOW);
+    }
+    else
+    {
+      digitalWrite(RESET_PIN, HIGH);
     }
 
 }
