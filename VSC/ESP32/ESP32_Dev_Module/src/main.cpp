@@ -1,7 +1,7 @@
 #define BUILTIN_BTN 3
 #define ON_OFF_PIN 4
-#define RESET_PIN 5
-#define STATUS_PIN 6
+#define RESET_PIN 6
+#define STATUS_PIN 5
 
 #include <Arduino.h>
 #include "LittleFS.h"
@@ -36,7 +36,7 @@ WiFiClient client;
 
 Adafruit_MQTT_Client mqttClient(&client, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, AIO_KEY);
 Adafruit_MQTT_Publish pub(&mqttClient, "CoolDong/f/home.led", MQTT_QOS_0);
-
+Adafruit_MQTT_Publish pub_on_off(&mqttClient, "CoolDong/f/pc-lcd.on-off", MQTT_QOS_0);
 Adafruit_MQTT_Publish pub_volt(&mqttClient, "CoolDong/f/pc-lcd.connection-volt", MQTT_QOS_0);
 
 Adafruit_MQTT_Subscribe sub_on_off(&mqttClient, "CoolDong/feeds/pc-lcd.on-off", MQTT_QOS_0);
@@ -54,7 +54,7 @@ unsigned long timerDelay = 5000;
 static int32_t count = 0;
 long current_Time = 0;
 bool status = false;
-
+float volt = 0;
 
 
 void setup() {
@@ -137,7 +137,20 @@ void setup() {
   Serial.println("MQTT Start");
 
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
- 
+  
+  volt = analogRead(STATUS_PIN);
+  Serial.print("Current State : ");
+  Serial.println(volt);
+
+  if (volt)
+  {
+    pub_on_off.publish("Off");    // 아래랑 바꾸기 테스트중
+  }
+  else
+  {
+    pub_on_off.publish("on");
+  }
+
 }
 
 void loop() 
@@ -153,7 +166,7 @@ void loop()
       pub.publish(++count); // heartbeat
       Serial.println(count);
 
-      float volt = analogRead(STATUS_PIN);
+      volt = analogRead(STATUS_PIN);
       pub_volt.publish(volt);
       if (volt > 1024)
       {
