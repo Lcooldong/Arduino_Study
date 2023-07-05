@@ -4,34 +4,29 @@
 #define STATUS_PIN 5
 
 #include <Arduino.h>
-#include "LittleFS.h"
+//#include "LittleFS.h"
+#include "MyLittleFS.h"
 #include <DNSServer.h>
-#ifdef ESP32
 #include "WiFi.h"
 #include <AsyncTCP.h>
-#elif defined(ESP8266)
-#include <ESP8266WiFi.h>
-#include <ESPAsyncTCP.h>
-#endif
-
 
 
 #include "neopixel.h"
 #include  <WiFiManager.h>
 #include "adafruitio_mqtt.h"
 
-// const char* ssid = "KT_GiGA_2G_Wave2_1205";
-// const char* pass = "8ec4hkx000";
+//const char* _ssid = "KT_GiGA_2G_Wave2_1205";
+const char* _pass = "8ec4hkx000";
 
-const char* ssid = "UARobotics_212_2.4G";
-const char* pass = "uarobotics";
+//const char* ssid = "UARobotics_212_2.4G";
+//const char* pass = "uarobotics";
 
 IPAddress _ap_static_ip;
 
 WiFiManager wm;
 bool res = false;
 MyNeopixel* myNeopixel = new MyNeopixel();
-
+MyLittleFS* myLittleFS = new MyLittleFS();
 WiFiClient client;
 
 Adafruit_MQTT_Client mqttClient(&client, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, AIO_KEY);
@@ -54,6 +49,7 @@ unsigned long timerDelay = 5000;
 static int32_t count = 0;
 long current_Time = 0;
 bool status = false;
+bool setupFlag = false;
 float volt = 0;
 
 
@@ -66,27 +62,24 @@ void setup() {
   pinMode(RESET_PIN, OUTPUT);
   myNeopixel->InitNeopixel();
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
-  if(!LittleFS.begin(true))
-  {      
-    Serial.println("LittleFS Mount Failed");
-    return;
-  }
-  Serial.println("LittleFS Mounted");
-
-
-
-
-
-  // // // KT 공유기 172.30.1.254
-  // IPAddress ip (172, 30, 1, 40);  // M5stamp -> 40, LCD 0.42-> 41
-  // IPAddress gateway (172, 30, 1, 254);
-  // IPAddress subnet(255, 255, 255, 0);
-  // WiFi.config(ip, gateway, subnet);
-
-  WiFi.mode(WIFI_AP_STA);
-
-  WiFi.begin(ssid, pass);
+  myLittleFS->InitLitteFS();
+  //  myLittleFS->listDir(LittleFS, "/", 0);
+  // SSID, PASS 불러오기
   
+//  myLittleFS->readFile(LittleFS, "/config.txt");
+  if(myLittleFS->loadConfig())
+  {
+    Serial.println(myLittleFS->ssid);  
+    Serial.println(myLittleFS->pass);
+
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.begin(myLittleFS->ssid, myLittleFS->pass);
+  }
+  
+
+
+  //WiFi.begin(_ssid, _pass);
+
   long last_Time = millis();
   while(WiFi.status() != WL_CONNECTED)
   {
@@ -95,10 +88,12 @@ void setup() {
     current_Time = millis();
     if (current_Time - last_Time > 10000)
     {
+
+        WiFi.disconnect();
         myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
         wm.resetSettings();
 
-        res = wm.autoConnect("WiFiManager");
+        res = wm.autoConnect("ESP32C3_WiFiManager");
         if(!res)
         {
           Serial.println("Failed to connect");
@@ -106,6 +101,10 @@ void setup() {
         else
         {
           Serial.println("connected...yeey :)");
+          // 새로운 SSID, PASS 쓰기
+
+          myLittleFS->saveConfig(wm.getWiFiSSID(), wm.getWiFiPass());
+          // myLittleFS->writeFile(LittleFS, "/config.txt", "Hello C3");
           break;
         }  
     }
@@ -151,6 +150,8 @@ void setup() {
     pub_on_off.publish("on");
   }
 
+  delay(500);
+  setupFlag = true;
 }
 
 void loop() 
@@ -209,38 +210,45 @@ void subOnOffcallback(char *str, uint16_t len)
     char buffer[len];
     String data;
 
-    Serial.println("------------On Off Message------------");
+    if (setupFlag)
+    {
+      Serial.println("------------On Off Message------------");
     
-    for (size_t i = 0; i < len; i++)
-    {
-        //Serial.print(str[i]);
-        buffer[i] = str[i];
-        data += str[i];
-    }
-    Serial.println();
-    Serial.println(data);
-    Serial.printf("length : %d\r\n", len);
-
-    if (data == "On")
-    {
-      Serial.println("Turn On PC");
-      digitalWrite(ON_OFF_PIN, HIGH);
-      delay(100);
-      digitalWrite(ON_OFF_PIN, LOW);
-      delay(100);
-      digitalWrite(ON_OFF_PIN, HIGH);
-    }
-    else if (data == "Off")
-    {
-      if (status == true)
+      for (size_t i = 0; i < len; i++)
       {
-        Serial.println("Turn Off PC");
+          //Serial.print(str[i]);
+          buffer[i] = str[i];
+          data += str[i];
+      }
+      Serial.println();
+      Serial.println(data);
+      Serial.printf("length : %d\r\n", len);
+
+      if (data == "On")
+      {
+        Serial.println("Turn On PC");
+        digitalWrite(ON_OFF_PIN, HIGH);
+        delay(100);
         digitalWrite(ON_OFF_PIN, LOW);
-        delay(5000);
+        delay(100);
         digitalWrite(ON_OFF_PIN, HIGH);
       }
+      else if (data == "Off")
+      {
+        if (status == true)
+        {
+          Serial.println("Turn Off PC");
+          digitalWrite(ON_OFF_PIN, LOW);
+          delay(5000);
+          digitalWrite(ON_OFF_PIN, HIGH);
+        }
+
+      }
+
 
     }
+
+    
 
 }
 
