@@ -1,7 +1,9 @@
 #define BUILTIN_BTN 3
-#define ON_OFF_PIN 4
-#define RESET_PIN 6
 #define STATUS_PIN 5
+#define RESET_PIN 6
+#define ON_OFF_PIN 7
+// 4, 5 ADC
+
 
 #include <Arduino.h>
 //#include "LittleFS.h"
