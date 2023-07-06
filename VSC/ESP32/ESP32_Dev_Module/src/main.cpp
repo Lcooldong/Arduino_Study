@@ -1,12 +1,15 @@
+
 #define BUILTIN_BTN 3
-#define STATUS_PIN 5
-#define RESET_PIN 6
+#define STATUS_PIN 4
+#define SDA_PIN 5
+#define SCL_PIN 6
 #define ON_OFF_PIN 7
-// 4, 5 ADC
+#define RESET_PIN 8
+// 4, 5 ADC -M5STAMP_C3
+// 0,1,3,4 ADC 0.42LCD
 
 
 #include <Arduino.h>
-//#include "LittleFS.h"
 #include "MyLittleFS.h"
 #include <DNSServer.h>
 #include "WiFi.h"
@@ -16,21 +19,24 @@
 #include "neopixel.h"
 #include  <WiFiManager.h>
 #include "adafruitio_mqtt.h"
+#include <U8g2lib.h>
+#include <Wire.h>
 
 //const char* _ssid = "KT_GiGA_2G_Wave2_1205";
-const char* _pass = "8ec4hkx000";
+//const char* _pass = "8ec4hkx000";
 
 //const char* ssid = "UARobotics_212_2.4G";
 //const char* pass = "uarobotics";
 
 IPAddress _ap_static_ip;
-
 WiFiManager wm;
-bool res = false;
-MyNeopixel* myNeopixel = new MyNeopixel();
-MyLittleFS* myLittleFS = new MyLittleFS();
+MQTT mqtt;
 WiFiClient client;
 
+MyNeopixel* myNeopixel = new MyNeopixel();
+MyLittleFS* myLittleFS = new MyLittleFS();
+
+U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 Adafruit_MQTT_Client mqttClient(&client, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, AIO_KEY);
 Adafruit_MQTT_Publish pub(&mqttClient, "CoolDong/f/home.led", MQTT_QOS_0);
 Adafruit_MQTT_Publish pub_on_off(&mqttClient, "CoolDong/f/pc-lcd.on-off", MQTT_QOS_0);
@@ -41,8 +47,8 @@ Adafruit_MQTT_Subscribe sub_reset(&mqttClient, "CoolDong/feeds/pc-lcd.reset", MQ
 
 void subOnOffcallback(char *str, uint16_t len);
 void subResetcallback(char *str, uint16_t len);
+void showLcdText(int cursor_x, int cursor_y, String _text);
 
-MQTT mqtt;
 
 unsigned long previousMillis = 0;
 const long interval = 10000;
@@ -53,15 +59,36 @@ long current_Time = 0;
 bool status = false;
 bool setupFlag = false;
 float volt = 0;
+bool res = false;
+
 
 
 void setup() {
   Serial.begin(115200);
+
+  Wire.begin(SDA_PIN, SCL_PIN);
+  u8g2.begin();
+  u8g2.enableUTF8Print();
+  u8g2.setFontMode(1);
+  //u8g2.setFont(u8g2_font_unifont_t_korean2);
+  //u8g2.setFont(u8g2_font_cu12_tr);
+  //u8g2.setFont(u8g2_font_cu12_hr);
+  //u8g2.setFont(u8g2_font_ncenB08_tr); // 조금 더 작음
+  u8g2.setFont(u8g2_font_5x7_tr);
+  u8g2.clearBuffer(); 
+
+  u8g2.setCursor(0,10);
+  u8g2.print(F("Start"));
+  u8g2.sendBuffer();
+  delay(1000);
+
   Serial.println("Start ESP32");
   pinMode(BUILTIN_BTN, INPUT_PULLUP);
   pinMode(STATUS_PIN, INPUT_PULLUP);
   pinMode(ON_OFF_PIN, OUTPUT);
   pinMode(RESET_PIN, OUTPUT);
+
+
   myNeopixel->InitNeopixel();
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
   myLittleFS->InitLitteFS();
@@ -90,9 +117,12 @@ void setup() {
     current_Time = millis();
     if (current_Time - last_Time > 10000)
     {
-
-        WiFi.disconnect();
+        
+        //WiFi.disconnect();
         myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
+        u8g2.clearBuffer();
+        showLcdText(0, 10 , "192.168.4.1");
+        Serial.printf("\nEnter : [] %s ]with your browser\n", WiFi.softAPIP().toString());
         wm.resetSettings();
 
         res = wm.autoConnect("ESP32C3_WiFiManager");
@@ -106,7 +136,9 @@ void setup() {
           // 새로운 SSID, PASS 쓰기
 
           myLittleFS->saveConfig(wm.getWiFiSSID(), wm.getWiFiPass());
+          delay(100);
           // myLittleFS->writeFile(LittleFS, "/config.txt", "Hello C3");
+          ESP.restart();
           break;
         }  
     }
@@ -115,8 +147,9 @@ void setup() {
   Serial.println();
   Serial.print(F("WiFi Connected -> IP : "));
   Serial.println(WiFi.localIP());
-  
-  
+  u8g2.clearBuffer();
+  showLcdText(0, 10 , myLittleFS->ssid);
+  showLcdText(0, 20 , "Connected");
 
 
   // Subscribe 설정, Connect 이전에 해야함
@@ -130,6 +163,7 @@ void setup() {
   else 
   {
     Serial.println("subscriber not connected");
+    showLcdText(0, 30 , "Not MQTT");
   }
 
 
@@ -138,7 +172,7 @@ void setup() {
   Serial.println("MQTT Start");
 
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
-  
+  showLcdText(0, 30 , "MQTT OK");
   volt = analogRead(STATUS_PIN);
   Serial.print("Current State : ");
   Serial.println(volt);
@@ -166,18 +200,20 @@ void loop()
     if(millis() - lastTime > timerDelay)
     {
       //Serial.printf("%lf, %lf, %lf \r\n", angleX, angleY, angleZ);
-      pub.publish(++count); // heartbeat
+      //pub.publish(++count); // heartbeat
       Serial.println(count);
 
       volt = analogRead(STATUS_PIN);
       pub_volt.publish(volt);
-      if (volt > 1024)
+      if (volt > 4000)
       {
         status = true;
       }
       else
       {
         status = false;
+        pub_on_off.publish("Off");
+        showLcdText(0, 40 , "Status:[ OFF ]");
       }
       lastTime = millis();
     }
@@ -228,21 +264,32 @@ void subOnOffcallback(char *str, uint16_t len)
 
       if (data == "On")
       {
-        Serial.println("Turn On PC");
-        digitalWrite(ON_OFF_PIN, HIGH);
-        delay(100);
-        digitalWrite(ON_OFF_PIN, LOW);
-        delay(100);
-        digitalWrite(ON_OFF_PIN, HIGH);
+        if(status == false)
+        {
+          Serial.println("Turn On PC");
+          myNeopixel->blinkNeopixel(myNeopixel->strip->Color(255, 100, 0), 3, 250);      
+          digitalWrite(ON_OFF_PIN, HIGH);
+          delay(100);
+          digitalWrite(ON_OFF_PIN, LOW);
+          delay(100);
+          digitalWrite(ON_OFF_PIN, HIGH);
+          showLcdText(0, 40 , "Status:[ ON ]");
+        }
+
       }
       else if (data == "Off")
       {
         if (status == true)
         {
+          myNeopixel->blinkNeopixel(myNeopixel->strip->Color(255, 0, 0), 3, 250);
           Serial.println("Turn Off PC");
           digitalWrite(ON_OFF_PIN, LOW);
-          delay(5000);
+          while(volt < 4000)
+          {
+            delay(100);
+          }          
           digitalWrite(ON_OFF_PIN, HIGH);
+          showLcdText(0, 40 , "Status:[ OFF ]");
         }
 
       }
@@ -282,4 +329,13 @@ void subResetcallback(char *str, uint16_t len)
       digitalWrite(RESET_PIN, HIGH);
     }
 
+}
+
+
+
+void showLcdText(int cursor_x, int cursor_y, String _text)
+{
+  u8g2.setCursor(cursor_x, cursor_y);
+  u8g2.print(F(_text.c_str()));
+  u8g2.sendBuffer();
 }

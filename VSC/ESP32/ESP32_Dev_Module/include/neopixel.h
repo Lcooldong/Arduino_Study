@@ -5,7 +5,7 @@
 #include "Adafruit_NeoPixel.h"
 
 #define LED_COUNT 1
-#define BUILTIN_LED 2
+#define RGB_PIN 2 // ESP32 RGB LED 는 대부분 2번
 
 class MyNeopixel{
 
@@ -13,7 +13,7 @@ class MyNeopixel{
 
 public:
 
-    Adafruit_NeoPixel* strip = new Adafruit_NeoPixel(LED_COUNT, BUILTIN_LED, NEO_GRB + NEO_KHZ800);
+    Adafruit_NeoPixel* strip = new Adafruit_NeoPixel(LED_COUNT, RGB_PIN, NEO_GRB + NEO_KHZ800);
 
     // 생성자
     MyNeopixel()

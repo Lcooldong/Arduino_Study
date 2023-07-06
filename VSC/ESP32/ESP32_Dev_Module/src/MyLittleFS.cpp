@@ -298,10 +298,10 @@ String MyLittleFS::json_parser(String target, String key){
   else {
     Serial.print(key); Serial.println(F(" is not available"));
   }
-  Serial.println(val);
+  //Serial.println(val);
   val.trim();   // \0 값 제거
 
-  Serial.println(val.length());
+  //Serial.println(val.length());
   
   return val;
 }
