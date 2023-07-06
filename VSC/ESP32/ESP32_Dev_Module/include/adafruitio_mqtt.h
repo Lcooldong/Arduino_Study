@@ -5,7 +5,7 @@
 #define MQTT_BROKER   "io.adafruit.com"
 #define MQTT_PORT     1883
 #define MQTT_USERNAME "CoolDong"
-#define AIO_KEY       "aio_mBft13w1ftSP1DT8xqQ7UsJh11PF"
+#define AIO_KEY       "aio_HPoI95AnBpE52WH1y5Bb5xZZBNsF"
 
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"

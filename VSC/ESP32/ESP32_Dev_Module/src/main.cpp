@@ -1,10 +1,14 @@
 
 #define BUILTIN_BTN 3
-#define STATUS_PIN 4
+#define STATUS_PIN 1
 #define SDA_PIN 5
 #define SCL_PIN 6
-#define ON_OFF_PIN 7
-#define RESET_PIN 8
+#define ON_OFF_PIN 20
+#define RESET_PIN 21
+// #define D20_PIN 20
+// #define D21_PIN 21
+// #define D0_PIN 0
+// #define D1_PIN 1
 // 4, 5 ADC -M5STAMP_C3
 // 0,1,3,4 ADC 0.42LCD
 
@@ -87,6 +91,11 @@ void setup() {
   pinMode(STATUS_PIN, INPUT_PULLUP);
   pinMode(ON_OFF_PIN, OUTPUT);
   pinMode(RESET_PIN, OUTPUT);
+
+  // pinMode(D0_PIN, INPUT_PULLUP);
+  // pinMode(D1_PIN, INPUT_PULLUP);
+  // pinMode(D20_PIN, OUTPUT);
+  // pinMode(D21_PIN, OUTPUT);
 
 
   myNeopixel->InitNeopixel();
@@ -177,14 +186,14 @@ void setup() {
   Serial.print("Current State : ");
   Serial.println(volt);
 
-  if (volt)
-  {
-    pub_on_off.publish("Off");    // 아래랑 바꾸기 테스트중
-  }
-  else
-  {
-    pub_on_off.publish("on");
-  }
+  // if (volt < 4000)
+  // {
+  //   pub_on_off.publish("Off");    // 아래랑 바꾸기 테스트중
+  // }
+  // else
+  // {
+  //   pub_on_off.publish("on");
+  // }
 
   delay(500);
   setupFlag = true;
@@ -202,17 +211,19 @@ void loop()
       //Serial.printf("%lf, %lf, %lf \r\n", angleX, angleY, angleZ);
       //pub.publish(++count); // heartbeat
       Serial.println(count);
-
+  
       volt = analogRead(STATUS_PIN);
       pub_volt.publish(volt);
       if (volt > 4000)
       {
         status = true;
+        showLcdText(0, 40 , "Status:[ On ]");
+        //pub_on_off.publish("On");
       }
       else
       {
         status = false;
-        pub_on_off.publish("Off");
+        //pub_on_off.publish("Off");
         showLcdText(0, 40 , "Status:[ OFF ]");
       }
       lastTime = millis();
@@ -268,11 +279,11 @@ void subOnOffcallback(char *str, uint16_t len)
         {
           Serial.println("Turn On PC");
           myNeopixel->blinkNeopixel(myNeopixel->strip->Color(255, 100, 0), 3, 250);      
-          digitalWrite(ON_OFF_PIN, HIGH);
-          delay(100);
           digitalWrite(ON_OFF_PIN, LOW);
-          delay(100);
+          delay(50);
           digitalWrite(ON_OFF_PIN, HIGH);
+          delay(50);
+          digitalWrite(ON_OFF_PIN, LOW);
           showLcdText(0, 40 , "Status:[ ON ]");
         }
 
@@ -283,12 +294,15 @@ void subOnOffcallback(char *str, uint16_t len)
         {
           myNeopixel->blinkNeopixel(myNeopixel->strip->Color(255, 0, 0), 3, 250);
           Serial.println("Turn Off PC");
-          digitalWrite(ON_OFF_PIN, LOW);
-          while(volt < 4000)
+          digitalWrite(ON_OFF_PIN, HIGH);
+          while(volt > 4000)
           {
             delay(100);
+            volt = analogRead(STATUS_PIN);
+            myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 255, 255), 50, 50);
           }          
-          digitalWrite(ON_OFF_PIN, HIGH);
+          digitalWrite(ON_OFF_PIN, LOW);
+          myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 0), 0, 50);
           showLcdText(0, 40 , "Status:[ OFF ]");
         }
 
