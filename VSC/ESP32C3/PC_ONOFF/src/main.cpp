@@ -17,6 +17,8 @@
 #define LEDC_BASE_FREQ 5000
 #define LEDC_TIMER_13_BIT 13
 
+#define POWER_SWTICH 20
+#define VOLT_STATUS 1
 
 #define SDA_PIN 5
 #define SCL_PIN 6
@@ -50,6 +52,9 @@ U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 void setup() {
   Serial.begin(115200);
   Wire.begin(SDA_PIN, SCL_PIN);
+  pinMode(POWER_SWTICH, OUTPUT);
+  pinMode(VOLT_STATUS, INPUT_PULLUP);
+
   u8g2.begin();
   u8g2.enableUTF8Print();
   myLittleFS->InitLitteFS();
@@ -58,12 +63,12 @@ void setup() {
   myLittleFS->readFile(LittleFS, "/config.txt");
   myLittleFS->listDir(LittleFS, "/", 0);
 
-  IPAddress ip (172, 30, 1, 40);  // M5stamp -> 40, LCD 0.42-> 41
+  IPAddress ip (172, 30, 1, 41);  // M5stamp -> 40, LCD 0.42-> 41
   IPAddress gateway (172, 30, 1, 254);
   IPAddress subnet(255, 255, 255, 0);
   WiFi.config(ip, gateway, subnet);
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.softAP(ssid_AP, pass_AP);
+  WiFi.mode(WIFI_STA);
+  //WiFi.softAP(ssid_AP, pass_AP);
   //WiFi.softAP(ssid_AP);
   WiFi.begin(ssid, pass);
   while(WiFi.status() != WL_CONNECTED)
@@ -87,7 +92,7 @@ void setup() {
   myServer.begin();
 
 
-
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 255, 255), 50, 50);
 
 #ifdef ANALOG_LED
   ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_13_BIT);
@@ -158,6 +163,24 @@ void onStatusUpdate(AsyncWebServerRequest *request)
   {
     inmsg = request->getParam("state")->value();
     myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50 * inmsg.toInt(), 50);
+    if(inmsg.toInt() == 1)
+    {
+      digitalWrite(POWER_SWTICH, LOW);
+      delay(100);
+      digitalWrite(POWER_SWTICH, HIGH);
+      delay(100);
+      digitalWrite(POWER_SWTICH, LOW);
+    }
+    else
+    {
+      digitalWrite(POWER_SWTICH, HIGH);
+      while(analogRead(VOLT_STATUS) > 4000)
+      {
+        delay(100);
+      }
+      digitalWrite(POWER_SWTICH, LOW);
+    }
+
   }
   else if(request->hasParam("state2"))
   {
