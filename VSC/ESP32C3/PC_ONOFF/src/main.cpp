@@ -20,7 +20,7 @@
 
 #define SDA_PIN 5
 #define SCL_PIN 6
-//#define RGB_LED
+#define RGB_LED
 //#define ANALOG_LED
 //#define DEGITAL_LED
 
@@ -38,6 +38,7 @@ const char* pass_AP = "12345678"; // 최소 8자리
 // Function below
 void ledcAnalogWrite(uint8_t channel, uint32_t value, uint32_t valueMax);
 
+void onStatusUpdate(AsyncWebServerRequest *request);
 
 // Instance
 AsyncWebServer myServer(80);
@@ -79,9 +80,14 @@ void setup() {
     request->send(LittleFS, "/index.html", "text/html");
   });
 
+  myServer.on("/update", onStatusUpdate);
+
   // css, js 파일 사용
   myServer.serveStatic("/", LittleFS, "/");
   myServer.begin();
+
+
+
 
 #ifdef ANALOG_LED
   ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_13_BIT);
@@ -96,7 +102,7 @@ void setup() {
 }
 
 void loop() {
-
+  
   u8g2.clearBuffer();  
   u8g2.setFontMode(1);
   
@@ -109,12 +115,12 @@ void loop() {
   // Serial.println("Loop");
   delay(2000);
 
-#ifdef RGB_LED
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
-  delay(1000);
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
-  delay(1000);
-#endif
+// #ifdef RGB_LED
+//   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
+//   delay(1000);
+//   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
+//   delay(1000);
+// #endif
 
 #ifdef DIGITAL_LED
   if(isOn)
@@ -144,6 +150,29 @@ void loop() {
 }
 
 
+void onStatusUpdate(AsyncWebServerRequest *request)
+{
+  String inmsg;
+
+  if(request->hasParam("state"))
+  {
+    inmsg = request->getParam("state")->value();
+    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50 * inmsg.toInt(), 50);
+  }
+  else if(request->hasParam("state2"))
+  {
+    inmsg = request->getParam("state2")->value();
+    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50 * inmsg.toInt(), 50);
+  }
+  else
+  {
+    inmsg = "No message sent";
+  }
+
+  Serial.println(inmsg);
+  request->send(200, "text/plain", "OK");
+
+}
 
 
 void ledcAnalogWrite(uint8_t channel, uint32_t value, uint32_t valueMax = 255)
@@ -151,6 +180,16 @@ void ledcAnalogWrite(uint8_t channel, uint32_t value, uint32_t valueMax = 255)
   uint32_t duty = (8191/ valueMax) * min(value, valueMax);
   ledcWrite(channel, duty);
 }
+
+
+
+
+// void InitWebServer()
+// {
+//   myServer.on("/", onRootRequest);
+
+
+// }
 
 
 

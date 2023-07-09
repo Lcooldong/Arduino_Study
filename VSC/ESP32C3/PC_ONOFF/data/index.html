@@ -9,6 +9,7 @@
         <title>ESP32C3</title>
         <!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
         <script src="https://kit.fontawesome.com/b6d4087ca4.js" crossorigin="anonymous"></script>
+        <script src="script.js"></script>      
     </head>
     <body>
         <nav class="navbar">
@@ -18,12 +19,25 @@
             </div>
             <ul class="navbar_menu">
                 <li><a href="">Home</a></li>
-                <li><a href="">Switch</a></li>
+                <li><a href="">Switch_PC</a></li>
             </ul>
             <ul class="navbar_icons">
                 <li><i class="fa-solid fa-microchip"></i></li>
             </ul>
 
-        </nav>    
+        </nav>
+        <br>   
+        <input id="ON_OFF_SWITCH" type="button" value="On_OFF" onclick="set_text_status('On Pressed')" size="10"><br> 
+        <input id="ON_OFF_STATUS" type="text" value="NONE"> <br> 
+        <input id="RANGE1" type="range" value="0" oninput="change_text_range()"> <br>
+        <input id="RANGE_TEXT" type="text" value="0"> <br> 
+
+        <input id="JSON_STRING" type="text" value="Nothing"> <br>
+        <input id="JSON_PARSING" type="text" value="Nothing"> <br>
+
+        <label class="switch"><input type="checkbox" onchange="toggleCheckbox(this)" id="output"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" onchange="toggleCheckbox2(this)" id="output"><span class="slider"></span></label> <br>
+        <input id="TOGGLE_STATUS" type="text" value="Nothing"> <br>
+        <input id="TOGGLE_STATUS2" type="text" value="Nothing"> <br>
     </body>
 </html>
