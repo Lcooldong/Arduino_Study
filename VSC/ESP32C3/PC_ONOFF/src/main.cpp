@@ -166,9 +166,9 @@ void onStatusUpdate(AsyncWebServerRequest *request)
     if(inmsg.toInt() == 1)
     {
       digitalWrite(POWER_SWTICH, LOW);
-      delay(100);
+      delay(50);
       digitalWrite(POWER_SWTICH, HIGH);
-      delay(100);
+      delay(50);
       digitalWrite(POWER_SWTICH, LOW);
     }
     else
@@ -176,7 +176,7 @@ void onStatusUpdate(AsyncWebServerRequest *request)
       digitalWrite(POWER_SWTICH, HIGH);
       while(analogRead(VOLT_STATUS) > 4000)
       {
-        delay(100);
+        delay(10);
       }
       digitalWrite(POWER_SWTICH, LOW);
     }
