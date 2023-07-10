@@ -1,82 +1,10 @@
-
-
-body{
-    margin: 0;
-}
-
-a {
-    text-decoration: none;
-    color: #FFFFFF;
-}
-
-.navbar
-{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #F7819F;
-    padding: 8px 12px;
-}
-
-.navbar_logo {
-    font-size: 24px;
-    color:#FFFFFF;
-}
-
-.navbar_logo i {
-    color: #52A4FF;
-}
-
-.navbar_menu {
-    display: flex;
-    list-style: none;
-    padding-left: 0;
-}
-
-.navbar_menu li {
-    padding: 8px 12px;
-}
-
-.navbar_icons {
-    list-style: none;
-    color: #222F2F;
-    display: flex;
-}
-
-.navbar_icons li {
-    padding: 8px 12px;
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 120px;
-    height: 68px;
-    input {display: none;}
-}
-
-.slider {
-    position:absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #F63E36;
-    border-radius: 34px;
-    before {
-        position: absolute;
-        content: "";
-        height: 52px;
-        width: 52px;
-        left: 8px;
-        bottom: 8px;
-        background-color: #FFF;
-        -webkit-transition: .4s;
-        transition: .4s;
-        border-radius: 68px;
-    }
-    input :checked+.slider {background-color: #3CC33C;}
-    input :checked+.slider:before {-webkit-transform: translateX(52px);
-                                   -ms-transform: translateX(52px);
-                                   transform: translateX(52px);}
-}
+html {font-family: Arial; display: inline-block; text-align: center;}
+h2 {font-size: 3.0rem;}
+p {font-size: 3.0rem;}
+body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
+.switch {position: relative; display: inline-block; width: 120px; height: 68px} 
+.switch input {display: none}
+.slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 34px}
+.slider:before {position: absolute; content: ""; height: 52px; width: 52px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 68px}
+input:checked+.slider {background-color: #2196F3}
+input:checked+.slider:before {-webkit-transform: translateX(52px); -ms-transform: translateX(52px); transform: translateX(52px)}

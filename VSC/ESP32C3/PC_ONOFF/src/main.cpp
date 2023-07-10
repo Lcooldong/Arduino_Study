@@ -1,76 +1,87 @@
-// Library
-#include <Arduino.h>
-#include <WiFi.h>
+#ifdef ESP32
+  #include <WiFi.h>
+  #include <Wire.h>
+  #include <U8g2lib.h>
+  #include <AsyncTCP.h>
+#else
+  #include <ESP8266WiFi.h>
+  #include <ESPAsyncTCP.h>
+#endif
+#include <ESPAsyncWebServer.h>
 
-#include <U8g2lib.h>
-#include <Wire.h>
+// Replace with your network credentials
+const char* ssid = "KT_GiGA_2G_Wave2_1205";
+const char* password = "8ec4hkx000";
 
-#include <DNSServer.h>
-#include <AsyncTCP.h>
-#include "ESPAsyncWebServer.h"
+const char* PARAM_INPUT_1 = "state";
+
+const int output = 4;
+const int buttonPin = 3;
+const int relay = 20;
+const int volt_input = 1;
 
 #include "neopixel.h"
 #include "MyLittleFS.h"
-// Define
-#define BUILTIN_LED 2
-#define LEDC_CHANNEL_0 0
-#define LEDC_BASE_FREQ 5000
-#define LEDC_TIMER_13_BIT 13
 
-#define POWER_SWTICH 20
-#define VOLT_STATUS 1
+// Variables will change:
+int ledState = LOW;          // the current state of the output pin
+int buttonState;             // the current reading from the input pin
+int lastButtonState = LOW;   // the previous reading from the input pin
+bool onFlag = false; 
+bool offFlag = false; 
+// the following variables are unsigned longs because the time, measured in
+// milliseconds, will quickly become a bigger number than can be stored in an int.
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 100;    // the debounce time; increase if the output flickers
 
-#define SDA_PIN 5
-#define SCL_PIN 6
-#define RGB_LED
-//#define ANALOG_LED
-//#define DEGITAL_LED
-
-// Value
-bool isOn = false;
-int brightness = 0;
-int fadeAmount = 5;
-
-const char* ssid = "KT_GiGA_2G_Wave2_1205";
-const char* pass = "8ec4hkx000";
-
-const char* ssid_AP = "ESP32C3-WiFiManager";
-const char* pass_AP = "12345678"; // 최소 8자리
-
-// Function below
-void ledcAnalogWrite(uint8_t channel, uint32_t value, uint32_t valueMax);
-
-void onStatusUpdate(AsyncWebServerRequest *request);
-
-// Instance
-AsyncWebServer myServer(80);
-// WiFiServer server(80);
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
 MyNeopixel* myNeopixel = new MyNeopixel();
 MyLittleFS* myLittleFS = new MyLittleFS();
-U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
-void setup() {
+
+String outputState();
+String processor(const String& var);
+void turnOnRelay();
+void turnOffRelay();
+
+
+void setup(){
+  // Serial port for debugging purposes
   Serial.begin(115200);
-  Wire.begin(SDA_PIN, SCL_PIN);
-  pinMode(POWER_SWTICH, OUTPUT);
-  pinMode(VOLT_STATUS, INPUT_PULLUP);
 
-  u8g2.begin();
-  u8g2.enableUTF8Print();
+  pinMode(output, OUTPUT); 
+  pinMode(relay, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(volt_input, INPUT_PULLUP);
+
+  //digitalWrite(output, LOW);
+  for (int i = 0; i < 10; i++)
+  {
+    if(analogRead(volt_input) > 4000)
+    {
+      digitalWrite(output, HIGH);
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
+    }
+    else
+    {
+      digitalWrite(output, LOW);
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
+    }
+  }
+  
+  
+  digitalWrite(relay, LOW);
+  
   myLittleFS->InitLitteFS();
-  myLittleFS->listDir(LittleFS, "/", 0);
-  myLittleFS->writeFile(LittleFS, "/config.txt", "Hello C3");
-  myLittleFS->readFile(LittleFS, "/config.txt");
-  myLittleFS->listDir(LittleFS, "/", 0);
-
+  
   IPAddress ip (172, 30, 1, 41);  // M5stamp -> 40, LCD 0.42-> 41
   IPAddress gateway (172, 30, 1, 254);
   IPAddress subnet(255, 255, 255, 0);
+  WiFi.mode(WIFI_AP_STA);
   WiFi.config(ip, gateway, subnet);
-  WiFi.mode(WIFI_STA);
-  //WiFi.softAP(ssid_AP, pass_AP);
-  //WiFi.softAP(ssid_AP);
-  WiFi.begin(ssid, pass);
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
   while(WiFi.status() != WL_CONNECTED)
   {
     delay(500);
@@ -80,139 +91,130 @@ void setup() {
   Serial.print(F("WiFi Connected -> IP : "));
   Serial.println(WiFi.localIP());
 
-  myServer.on("/", HTTP_GET, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, "/index.html", "text/html");
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/index.html", "text/html", false, processor);
   });
 
-  myServer.on("/update", onStatusUpdate);
+  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String inputMessage;
+    String inputParam;
+    // GET input1 value on <ESP_IP>/update?state=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1)) {
+      inputMessage = request->getParam(PARAM_INPUT_1)->value();
+      inputParam = PARAM_INPUT_1;
+      digitalWrite(output, inputMessage.toInt()); // 밑 digitalRead 와 연관있음
 
-  // css, js 파일 사용
-  myServer.serveStatic("/", LittleFS, "/");
-  myServer.begin();
-
-
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 255, 255), 50, 50);
-
-#ifdef ANALOG_LED
-  ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_13_BIT);
-  ledcAttachPin(BUILTIN_LED, LEDC_CHANNEL_0);
-#endif
-
-#ifdef DEGITAL_LED
-  pinMode(BUILTIN_LED, OUTPUT);
-#endif
-
-
-}
-
-void loop() {
-  
-  u8g2.clearBuffer();  
-  u8g2.setFontMode(1);
-  
-  u8g2.setFont(u8g2_font_unifont_t_korean2);
-  // u8g2.setFont(u8g2_font_cu12_tr);		  
-  u8g2.setCursor(0,15);
-  u8g2.print(F("안녕"));
-  u8g2.sendBuffer();
-  // delay(3000);
-  // Serial.println("Loop");
-  delay(2000);
-
-// #ifdef RGB_LED
-//   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
-//   delay(1000);
-//   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
-//   delay(1000);
-// #endif
-
-#ifdef DIGITAL_LED
-  if(isOn)
-  {
-    digitalWrite(BUILTIN_LED, HIGH);
-    isOn = false;
-    delay(1000);
-  }
-  else
-  {
-    digitalWrite(BUILTIN_LED, LOW);
-    isOn = true;
-    delay(1000);
-  }
-#endif
-
-#ifdef ANALOG_LED
-  ledcAnalogWrite(LEDC_CHANNEL_0, brightness, 255);
-  brightness += fadeAmount;
-  if(brightness <= 0 || brightness >= 255)
-  {
-    fadeAmount = -fadeAmount;
-  }
-  delay(50);
-#endif
-
-}
-
-
-void onStatusUpdate(AsyncWebServerRequest *request)
-{
-  String inmsg;
-
-  if(request->hasParam("state"))
-  {
-    inmsg = request->getParam("state")->value();
-    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50 * inmsg.toInt(), 50);
-    if(inmsg.toInt() == 1)
-    {
-      digitalWrite(POWER_SWTICH, LOW);
-      delay(50);
-      digitalWrite(POWER_SWTICH, HIGH);
-      delay(50);
-      digitalWrite(POWER_SWTICH, LOW);
-    }
-    else
-    {
-      digitalWrite(POWER_SWTICH, HIGH);
-      while(analogRead(VOLT_STATUS) > 4000)
+      if(inputMessage.toInt())
       {
-        delay(10);
+        onFlag = true;
       }
-      digitalWrite(POWER_SWTICH, LOW);
+      else
+      {
+        offFlag = true;
+      }
+
+      
+      //myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50 * inputMessage.toInt(), 50);
+      ledState = !ledState;
     }
+    else {
+      inputMessage = "No message sent";
+      inputParam = "none";
+    }
+    Serial.printf("INPUT MESSAGE : %s\n", inputMessage);
+    request->send(200, "text/plain", "OK");
+  });
 
-  }
-  else if(request->hasParam("state2"))
-  {
-    inmsg = request->getParam("state2")->value();
-    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50 * inmsg.toInt(), 50);
-  }
-  else
-  {
-    inmsg = "No message sent";
+  // Send a GET request to <ESP_IP>/state
+  server.on("/state", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", String(digitalRead(output)).c_str());
+  });
+  // Start server
+  server.serveStatic("/", LittleFS, "/");
+  server.begin();
+  Serial.printf("Server Started\n");
+}
+  
+void loop() {
+
+  int reading = digitalRead(buttonPin);
+
+  if (reading != lastButtonState) {
+    // reset the debouncing timer
+    lastDebounceTime = millis();
   }
 
-  Serial.println(inmsg);
-  request->send(200, "text/plain", "OK");
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
+
+      if (buttonState == HIGH) {
+        ledState = !ledState;
+      }
+    }
+  }
+
+  lastButtonState = reading;
+
+  // WiFi Reconnect
+  if(onFlag)
+  {
+    turnOnRelay();
+    onFlag = false;
+  }
+  else if(offFlag)
+  {
+    turnOffRelay();
+    offFlag = false;
+  }
 
 }
 
 
-void ledcAnalogWrite(uint8_t channel, uint32_t value, uint32_t valueMax = 255)
+String outputState(){
+  if(digitalRead(output))
+  {
+    return "checked";
+  }
+  else 
+  {
+    return "";
+  }
+  return "";
+}
+
+// Replaces placeholder with button section in your web page
+String processor(const String& var){
+  //Serial.println(var);
+  if(var == "BUTTONPLACEHOLDER"){
+    String buttons ="";
+    String outputStateValue = outputState();
+    buttons+= "<h4>Output - GPIO 2 - State <span id=\"outputState\"></span></h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label>";
+    return buttons;
+    //return outputStateValue;
+  }
+  return String();
+}
+
+void turnOnRelay()
 {
-  uint32_t duty = (8191/ valueMax) * min(value, valueMax);
-  ledcWrite(channel, duty);
+  digitalWrite(relay, LOW);
+  delay(100);
+  digitalWrite(relay, HIGH);
+  delay(100);
+  digitalWrite(relay, LOW);
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
 }
 
-
-
-
-// void InitWebServer()
-// {
-//   myServer.on("/", onRootRequest);
-
-
-// }
-
-
-
+void turnOffRelay()
+{
+  digitalWrite(relay, HIGH);
+  while(analogRead(volt_input) > 4000)
+  {
+    delay(100);
+  }
+  digitalWrite(relay, LOW);
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 255, 255), 10, 50);
+}
