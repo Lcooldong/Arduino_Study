@@ -34,8 +34,12 @@ bool offFlag = false;
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 100;    // the debounce time; increase if the output flickers
 
+unsigned long lastOnOffTime = 0;
+unsigned long OnOffInterval = 2000;
+
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
+AsyncEventSource events("/events");
 MyNeopixel* myNeopixel = new MyNeopixel();
 MyLittleFS* myLittleFS = new MyLittleFS();
 
@@ -78,7 +82,7 @@ void setup(){
   IPAddress ip (172, 30, 1, 41);  // M5stamp -> 40, LCD 0.42-> 41
   IPAddress gateway (172, 30, 1, 254);
   IPAddress subnet(255, 255, 255, 0);
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.mode(WIFI_STA);
   WiFi.config(ip, gateway, subnet);
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
@@ -132,6 +136,16 @@ void setup(){
     request->send(200, "text/plain", String(digitalRead(output)).c_str());
   });
   // Start server
+  events.onConnect([](AsyncEventSourceClient *client){
+    if(client->lastId()){
+      Serial.printf("Client reconnected! Last message ID that it gat is: %u\n", client->lastId());
+    }
+    //send event with message "hello!", id current millis
+    // and set reconnect delay to 1 second
+    client->send("hello!",NULL,millis(),10000);
+  });
+  //HTTP Basic authentication
+  server.addHandler(&events);
   server.serveStatic("/", LittleFS, "/");
   server.begin();
   Serial.printf("Server Started\n");
@@ -140,7 +154,7 @@ void setup(){
 void loop() {
 
   int reading = digitalRead(buttonPin);
-
+  
   if (reading != lastButtonState) {
     // reset the debouncing timer
     lastDebounceTime = millis();
@@ -170,6 +184,31 @@ void loop() {
     offFlag = false;
   }
 
+  if ((millis() - lastOnOffTime) > OnOffInterval)
+  {
+    events.send("ping",NULL,millis());
+
+    if(analogRead(volt_input) > 4000)
+    {
+      digitalWrite(output, HIGH);
+      // On 이벤트 잘 작동 X -> 처음 킬 때는 잘 작동함
+      events.send(String("On").c_str(), "current_on", millis());
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 255), 50, 50);
+            
+    }
+    else
+    {
+      digitalWrite(output, LOW);
+      Serial.println("EVENT");
+      events.send(String("Off").c_str(), "current_off", millis());
+    
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(200, 50, 0), 50, 50);
+      delay(500);
+    }
+    lastOnOffTime = millis();
+  }
+  
+
 }
 
 
@@ -195,15 +234,29 @@ String processor(const String& var){
     return buttons;
     //return outputStateValue;
   }
+  // else if(var == "CURRENT")
+  // {
+  //   String outputStateValue;
+  //   if ( analogRead(volt_input) > 4000)
+  //   {
+  //     outputStateValue = "On";
+  //   }
+  //   else
+  //   {
+  //     outputStateValue = "Off";
+  //   }
+    
+  //   return outputStateValue;
+  // }
   return String();
 }
 
 void turnOnRelay()
 {
   digitalWrite(relay, LOW);
-  delay(100);
+  delay(50);
   digitalWrite(relay, HIGH);
-  delay(100);
+  delay(50);
   digitalWrite(relay, LOW);
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
 }
@@ -216,5 +269,5 @@ void turnOffRelay()
     delay(100);
   }
   digitalWrite(relay, LOW);
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 255, 255), 10, 50);
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 50, 50), 5, 50);
 }
