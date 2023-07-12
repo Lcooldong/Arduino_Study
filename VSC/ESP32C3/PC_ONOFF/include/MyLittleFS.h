@@ -26,12 +26,13 @@ public:
     void writeFile2(fs::FS &fs, const char * path, const char * message);
     void deleteFile2(fs::FS &fs, const char * path);
 
-    bool saveConfig();
+    bool saveConfig(String SSID, String PASS);
     bool loadConfig();
 
+    char ssid[32];
+    char pass[32];
 private:
-    char ssid[32] = "YOUR_SSID";
-    char pwd[32] = "YOUR_PWD";
+    
 
     String configFilePath = "/config.txt";
 

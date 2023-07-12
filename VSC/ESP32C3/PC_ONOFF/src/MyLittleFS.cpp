@@ -227,11 +227,15 @@ void MyLittleFS::deleteFile2(fs::FS &fs, const char * path){
     LINE;
 }
 
-bool MyLittleFS::saveConfig()
+bool MyLittleFS::saveConfig(String SSID, String PASS)
 {
     String configData;
 
-    configData = "SSID"; // 값 추가
+    //ssid = String(SSID);
+    //pass = String(PASS);
+    strcpy(ssid, SSID.c_str());
+    strcpy(pass, PASS.c_str());
+    configData = String("\"SSID\":" + SSID + ",\"PASS\":" + PASS ); // 값 추가
 
     File configFile = LittleFS.open(configFilePath, "w");
     if (!configFile) 
@@ -239,7 +243,8 @@ bool MyLittleFS::saveConfig()
         Serial.println("Failed to open config file for writing");
         return false;
     }
-    configFile.println(configData);
+    configFile.println(configData); // 파일 쓰기
+
     configFile.close();
 
     return true;
@@ -257,8 +262,20 @@ bool MyLittleFS::loadConfig()
 
     // read one line
     String result = configFile.readStringUntil('\n');
-    String ssidTemp = json_parser(result, "SSID");
-    String pwdTemp = json_parser(result, "PWD");
+    json_parser(result, "SSID").toCharArray(ssid, 32);
+    json_parser(result, "PASS").toCharArray(pass, 32);
+    //this->ssid = String(json_parser(result, "SSID"));
+    //this->pass = String(json_parser(result, "PASS"));
+    //json_parser(result, "SSID");
+    //json_parser(result, "PASS");
+    // String ssidTemp = json_parser(result, "SSID");
+    // String passTemp = json_parser(result, "PASS");
+    
+    // //Serial.printf( "SSID : %s | PASS : %s\n" ,ssidTemp.c_str(), passTemp.c_str() );
+    // strcpy(ssid, ssidTemp.c_str());
+    // passTemp.toCharArray(pass, 32);
+    //strcpy(pass, passTemp.c_str());
+    Serial.printf( "SSID : %s | PASS : %s\n" ,ssid, pass);
 
     return true;
 }
@@ -281,5 +298,10 @@ String MyLittleFS::json_parser(String target, String key){
   else {
     Serial.print(key); Serial.println(F(" is not available"));
   }
+  //Serial.println(val);
+  val.trim();   // \0 값 제거
+
+  //Serial.println(val.length());
+  
   return val;
 }

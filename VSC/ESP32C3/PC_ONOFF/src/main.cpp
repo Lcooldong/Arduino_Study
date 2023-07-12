@@ -7,11 +7,19 @@
   #include <ESP8266WiFi.h>
   #include <ESPAsyncTCP.h>
 #endif
+//#define WEBSERVER_H
 #include <ESPAsyncWebServer.h>
+//#include  <WiFiManager.h>
+#include <ESPAsyncWiFiManager.h> 
+
+#define UNSIGNED_LONG_LIMIT 4000000000
+#define RECONNECT_INTERVAL 10000
+#define ON_OFF_INTERVAL 2000
+#define PC_ON_ANALOG_VALUE 4000
 
 // Replace with your network credentials
-const char* ssid = "KT_GiGA_2G_Wave2_1205";
-const char* password = "8ec4hkx000";
+// const char* ssid = "KT_GiGA_2G_Wave2_1205";
+// const char* password = "8ec4hkx000";
 
 const char* PARAM_INPUT_1 = "state";
 
@@ -28,27 +36,36 @@ int ledState = LOW;          // the current state of the output pin
 int buttonState;             // the current reading from the input pin
 int lastButtonState = LOW;   // the previous reading from the input pin
 bool onFlag = false; 
-bool offFlag = false; 
+bool offFlag = false;
+bool wmRes = false;
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 100;    // the debounce time; increase if the output flickers
 
+unsigned long reconnectTime = 0;
 unsigned long lastOnOffTime = 0;
-unsigned long OnOffInterval = 2000;
+unsigned long wifiCurrentTime = 0;
 
 // Create AsyncWebServer object on port 80
+//WiFiManager wm;
+DNSServer dns;
+AsyncWebServer WiFi_server(80);
+
+
 AsyncWebServer server(80);
 AsyncEventSource events("/events");
 MyNeopixel* myNeopixel = new MyNeopixel();
 MyLittleFS* myLittleFS = new MyLittleFS();
-
+U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 String outputState();
 String processor(const String& var);
 void turnOnRelay();
 void turnOffRelay();
-
+void showLcdText(int cursor_x, int cursor_y, String _text);
+void InitU8g2();
+void configModeCallback (AsyncWiFiManager *myWiFiManager);
 
 void setup(){
   // Serial port for debugging purposes
@@ -59,13 +76,17 @@ void setup(){
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(volt_input, INPUT_PULLUP);
 
+  myLittleFS->InitLitteFS();
+  myNeopixel->InitNeopixel();
+  InitU8g2();
+  digitalWrite(relay, LOW);
   //digitalWrite(output, LOW);
   for (int i = 0; i < 10; i++)
   {
-    if(analogRead(volt_input) > 4000)
+    if(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
     {
       digitalWrite(output, HIGH);
-      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
     }
     else
     {
@@ -73,28 +94,70 @@ void setup(){
       myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
     }
   }
-  
-  
-  digitalWrite(relay, LOW);
-  
-  myLittleFS->InitLitteFS();
-  
   IPAddress ip (172, 30, 1, 41);  // M5stamp -> 40, LCD 0.42-> 41
   IPAddress gateway (172, 30, 1, 254);
   IPAddress subnet(255, 255, 255, 0);
-  WiFi.mode(WIFI_STA);
   WiFi.config(ip, gateway, subnet);
+
+  if(myLittleFS->loadConfig())
+  {
+    Serial.println(myLittleFS->ssid);  
+    Serial.println(myLittleFS->pass);
+
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.begin(myLittleFS->ssid, myLittleFS->pass);
+  }
+  
+
   // Connect to Wi-Fi
-  WiFi.begin(ssid, password);
+  AsyncWiFiManager wm(&WiFi_server,&dns);
+  wm.setAPCallback(configModeCallback);  
+
+  long lastTime = millis();
   while(WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(F("."));
+    wifiCurrentTime = millis();
+    if (wifiCurrentTime - lastTime > 10000)
+    {
+        
+        //WiFi.disconnect();
+        myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
+        u8g2.clearBuffer();
+        showLcdText(0, 10 , "192.168.4.1");
+        Serial.printf("\nEnter : [] %s ]with your browser\n", WiFi.softAPIP().toString());
+        wm.resetSettings();
+
+        wmRes = wm.autoConnect("ESP32C3_WiFiManager");
+        if(!wmRes)
+        {
+          Serial.println("Failed to connect");
+        }
+        else
+        {
+          Serial.println("connected...yeey :)");
+          // 새로운 SSID, PASS 쓰기
+
+          // myLittleFS->saveConfig(wm. getWiFiSSID(), wm.getWiFiPass());
+          myLittleFS->saveConfig(wm.getConfiguredSTASSID(), wm.getConfiguredSTAPassword());
+          delay(100);
+          // myLittleFS->writeFile(LittleFS, "/config.txt", "Hello C3");
+          ESP.restart();
+          WiFi_server.end();
+          break;
+        }  
+    }
+
   }
+
   Serial.println();
   Serial.print(F("WiFi Connected -> IP : "));
   Serial.println(WiFi.localIP());
-
+  u8g2.clearBuffer();
+  showLcdText(0, 10 , myLittleFS->ssid);
+  showLcdText(0, 20 , "Connected");
+  WiFi_server.end();
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(LittleFS, "/index.html", "text/html", false, processor);
@@ -150,7 +213,8 @@ void setup(){
   server.begin();
   Serial.printf("Server Started\n");
 }
-  
+
+
 void loop() {
 
   int reading = digitalRead(buttonPin);
@@ -184,31 +248,48 @@ void loop() {
     offFlag = false;
   }
 
-  if ((millis() - lastOnOffTime) > OnOffInterval)
+
+  if (WiFi.status ()== WL_CONNECTED)
   {
-    events.send("ping",NULL,millis());
+    if ((millis() - lastOnOffTime) > ON_OFF_INTERVAL)
+    {
+      events.send("ping",NULL,millis());
 
-    if(analogRead(volt_input) > 4000)
-    {
-      digitalWrite(output, HIGH);
-      // On 이벤트 잘 작동 X -> 처음 킬 때는 잘 작동함
-      events.send(String("On").c_str(), "current_on", millis());
-      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 255), 50, 50);
-            
+      if(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
+      {
+        digitalWrite(output, HIGH);
+        // On 이벤트 잘 작동 X -> 처음 킬 때는 잘 작동함
+        events.send(String("On").c_str(), "current_on", millis());
+        myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 255), 5, 50);
+        showLcdText(0, 40 , "Status:[ On ]");      
+      }
+      else
+      {
+        digitalWrite(output, LOW);
+        Serial.println("EVENT");
+        events.send(String("Off").c_str(), "current_off", millis());
+        myNeopixel->pickOneLED(0, myNeopixel->strip->Color(200, 50, 0), 5, 50);
+        showLcdText(0, 40 , "Status:[ OFF ]");
+        delay(500);
+      }
+      lastOnOffTime = millis();
+
+      if (lastOnOffTime  > UNSIGNED_LONG_LIMIT)
+      {
+        ESP.restart();
+      } 
     }
-    else
-    {
-      digitalWrite(output, LOW);
-      Serial.println("EVENT");
-      events.send(String("Off").c_str(), "current_off", millis());
-    
-      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(200, 50, 0), 50, 50);
-      delay(500);
-    }
-    lastOnOffTime = millis();
   }
-  
-
+  else
+  {
+    if(millis() - reconnectTime > RECONNECT_INTERVAL)
+    {
+      Serial.println("WiFi Disconnected");
+      WiFi.reconnect();
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
+      reconnectTime = millis();
+    }
+  }
 }
 
 
@@ -223,6 +304,7 @@ String outputState(){
   }
   return "";
 }
+
 
 // Replaces placeholder with button section in your web page
 String processor(const String& var){
@@ -264,10 +346,38 @@ void turnOnRelay()
 void turnOffRelay()
 {
   digitalWrite(relay, HIGH);
-  while(analogRead(volt_input) > 4000)
+  while(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
   {
     delay(100);
   }
   digitalWrite(relay, LOW);
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 50, 50), 5, 50);
+}
+
+void InitU8g2()
+{
+  u8g2.begin();
+  u8g2.enableUTF8Print();
+  u8g2.setFontMode(1);
+  u8g2.setFont(u8g2_font_5x7_tr);
+  u8g2.clearBuffer(); 
+  u8g2.setCursor(0,10);
+  u8g2.print(F("Start"));
+  u8g2.sendBuffer();
+}
+
+void showLcdText(int cursor_x, int cursor_y, String _text)
+{
+  u8g2.setCursor(cursor_x, cursor_y);
+  u8g2.print(F(_text.c_str()));
+  u8g2.sendBuffer();
+}
+
+void configModeCallback (AsyncWiFiManager *myWiFiManager) {
+  Serial.println("Entered config mode");
+  Serial.println(WiFi.softAPIP());
+  //if you used auto generated SSID, print it
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
+
 }
