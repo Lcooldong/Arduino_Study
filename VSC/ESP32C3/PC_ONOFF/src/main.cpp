@@ -17,10 +17,6 @@
 #define ON_OFF_INTERVAL 2000
 #define PC_ON_ANALOG_VALUE 4000
 
-// Replace with your network credentials
-// const char* ssid = "KT_GiGA_2G_Wave2_1205";
-// const char* password = "8ec4hkx000";
-
 const char* PARAM_INPUT_1 = "state";
 
 const int output = 4;
@@ -37,9 +33,9 @@ int buttonState;             // the current reading from the input pin
 int lastButtonState = LOW;   // the previous reading from the input pin
 bool onFlag = false; 
 bool offFlag = false;
+bool shutdownFlag = false;
 bool wmRes = false;
-// the following variables are unsigned longs because the time, measured in
-// milliseconds, will quickly become a bigger number than can be stored in an int.
+
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 100;    // the debounce time; increase if the output flickers
 
@@ -61,11 +57,12 @@ U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 String outputState();
 String processor(const String& var);
-void turnOnRelay();
-void turnOffRelay();
+void turnOnOffRelay();
+void shutdownRelay();
 void showLcdText(int cursor_x, int cursor_y, String _text);
 void InitU8g2();
 void configModeCallback (AsyncWiFiManager *myWiFiManager);
+
 
 void setup(){
   // Serial port for debugging purposes
@@ -107,7 +104,14 @@ void setup(){
     WiFi.mode(WIFI_AP_STA);
     WiFi.begin(myLittleFS->ssid, myLittleFS->pass);
   }
+  else
+  {
+    const char* ssid = "KT_GiGA_2G_Wave2_1205";
+    const char* password = "8ec4hkx000";
+    WiFi.begin(ssid, password);
+  }
   
+
 
   // Connect to Wi-Fi
   AsyncWiFiManager wm(&WiFi_server,&dns);
@@ -196,8 +200,15 @@ void setup(){
 
   // Send a GET request to <ESP_IP>/state
   server.on("/state", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", String(digitalRead(output)).c_str());
+    request->send(200, "text/plain", String(digitalRead(output)).c_str());  // 보드 -> Javascript
   });
+
+  server.on("/shutdown", HTTP_GET,[] (AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", "SHUTDOWN");
+    shutdownFlag = true;
+    
+  });
+
   // Start server
   events.onConnect([](AsyncEventSourceClient *client){
     if(client->lastId()){
@@ -237,17 +248,9 @@ void loop() {
   lastButtonState = reading;
 
   // WiFi Reconnect
-  if(onFlag)
-  {
-    turnOnRelay();
-    onFlag = false;
-  }
-  else if(offFlag)
-  {
-    turnOffRelay();
-    offFlag = false;
-  }
-
+  shutdownRelay();
+  turnOnOffRelay();
+  
 
   if (WiFi.status ()== WL_CONNECTED)
   {
@@ -333,25 +336,47 @@ String processor(const String& var){
   return String();
 }
 
-void turnOnRelay()
+void turnOnOffRelay()
 {
-  digitalWrite(relay, LOW);
-  delay(50);
-  digitalWrite(relay, HIGH);
-  delay(50);
-  digitalWrite(relay, LOW);
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
+
+  if(onFlag)
+  {
+    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
+    digitalWrite(relay, HIGH);
+    delay(50);
+
+    onFlag = false;
+  }
+  else if(offFlag)
+  {
+    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 50, 50), 5, 50);
+    digitalWrite(relay, HIGH);
+    delay(50);
+    offFlag = false;
+  }
+  else
+  {
+    digitalWrite(relay, LOW);
+  }
+
+
 }
 
-void turnOffRelay()
+
+
+void shutdownRelay()
 {
-  digitalWrite(relay, HIGH);
-  while(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
-  {
-    delay(100);
+  if(shutdownFlag){
+    digitalWrite(relay, HIGH);
+    delay(5000);
+    // while(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
+    // {
+    //   delay(100);
+    // }
+    digitalWrite(relay, LOW);
+    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 50, 50), 5, 50);
+    shutdownFlag = false;
   }
-  digitalWrite(relay, LOW);
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 50, 50), 5, 50);
 }
 
 void InitU8g2()

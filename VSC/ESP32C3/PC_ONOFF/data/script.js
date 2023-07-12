@@ -11,6 +11,15 @@ function toggleCheckbox(element) {
     xhr.send();
 }
 
+var buttonFlag = false;
+function btn_clicked(element)
+{
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/shutdown", true);
+    xhr.send();
+}
+
+
 setInterval(function ( ) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
