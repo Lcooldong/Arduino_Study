@@ -147,8 +147,9 @@ void setup(){
           myLittleFS->saveConfig(wm.getConfiguredSTASSID(), wm.getConfiguredSTAPassword());
           delay(100);
           // myLittleFS->writeFile(LittleFS, "/config.txt", "Hello C3");
-          ESP.restart();
           WiFi_server.end();
+          ESP.restart();
+          
           break;
         }  
     }
@@ -289,6 +290,10 @@ void loop() {
     {
       Serial.println("WiFi Disconnected");
       WiFi.reconnect();
+      if(WiFi.status() != WL_CONNECTED)
+      {
+        ESP.restart();
+      }
       myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
       reconnectTime = millis();
     }
