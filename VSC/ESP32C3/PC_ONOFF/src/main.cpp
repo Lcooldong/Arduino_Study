@@ -91,8 +91,16 @@ void setup(){
       myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
     }
   }
-  IPAddress ip (172, 30, 1, 41);  // M5stamp -> 40, LCD 0.42-> 41
-  IPAddress gateway (172, 30, 1, 254);
+
+  // KT
+  // IPAddress ip (172, 30, 1, 41);  // M5stamp -> 40, LCD 0.42-> 41
+  // IPAddress gateway (172, 30, 1, 254);
+  // IPAddress subnet(255, 255, 255, 0);
+
+
+  // ASUS
+  IPAddress ip (192, 168, 50, 40);  // M5stamp -> 40, LCD 0.42-> 41
+  IPAddress gateway (192, 168, 50, 1);
   IPAddress subnet(255, 255, 255, 0);
   WiFi.config(ip, gateway, subnet);
 
