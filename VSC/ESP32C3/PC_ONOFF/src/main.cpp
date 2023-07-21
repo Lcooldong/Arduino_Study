@@ -46,10 +46,10 @@ unsigned long wifiCurrentTime = 0;
 // Create AsyncWebServer object on port 80
 //WiFiManager wm;
 DNSServer dns;
-AsyncWebServer WiFi_server(80);
+AsyncWebServer WiFi_server(80); //  WiFi Manager
 
 
-AsyncWebServer server(80);
+AsyncWebServer server(5000);  // 스위치 서버
 AsyncEventSource events("/events");
 MyNeopixel* myNeopixel = new MyNeopixel();
 MyLittleFS* myLittleFS = new MyLittleFS();
