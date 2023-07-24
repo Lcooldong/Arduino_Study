@@ -43,7 +43,7 @@ void loop() {
   strip.setPixelColor(head, color); // 'On' pixel at head
   //strip.setPixelColor(tail, 0);     // 'Off' pixel at tail  마지막 한개 끄기 때문에 tail = -8 하면 안켜짐 - 분석필요
   strip.show();                     // Refresh strip
-  delay(500);                        // Pause 20 milliseconds (~50 FPS)
+  delay(20);                        // Pause 20 milliseconds (~50 FPS), 매우 빠르게도 가능(delay(1))
 
   if(++head >= NUMPIXELS) {         // Increment head index.  Off end of strip?
     head = 0;                       //  Yes, reset head index to start
@@ -52,3 +52,7 @@ void loop() {
   }
   if(++tail >= NUMPIXELS) tail = 0; // Increment, reset tail index
 }
+
+
+
+// led 알고리즘 - Adafruit neopixel 참고
