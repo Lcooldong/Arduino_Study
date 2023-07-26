@@ -24,7 +24,7 @@ Adafruit_DotStar strip(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
 void setup() {
 
   Serial.begin(115200);
-
+  
   strip.begin(); // Initialize pins for output
   strip.show();  // Turn all LEDs off ASAP
 }
