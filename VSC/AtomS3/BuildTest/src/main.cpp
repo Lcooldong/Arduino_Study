@@ -1,25 +1,27 @@
 
-#include <math.h>
 #include <Arduino.h>
-#include <WiFi.h>
-#include <Wire.h>
-#include <driver/ledc.h>
-#include <driver/rmt.h>
-// #include <ir_tools.h>
-
-#include "M5GFX.h"
-#include "M5Unified.h"
-#include "I2C_MPU6886.h"
-#include "MadgwickAHRS.h"
+#include "M5AtomS3.h"
 
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("H");
-  
+  M5.begin(true, true, true, false);
+  M5.IMU.begin();
+  USBSerial.printf("0x%02x\n", M5.IMU.whoAmI());
 }
 
+float ax, ay, az, gx, gy, gz, t;
+
 void loop() {
-  // put your main code here, to run repeatedly:
+  M5.Lcd.setCursor(0, 40);
+  M5.Lcd.clear();
+  M5.IMU.getAccel(&ax, &ay, &az);
+  M5.IMU.getGyro(&gx, &gy, &gz);
+  M5.IMU.getTemp(&t);
+  USBSerial.printf("%f | %f | %f | %f | %f | %f | %f\n", ax, ay, az, gx, gy, gz, t);
+
+  M5.Lcd.printf("IMU:\r\n");
+  M5.Lcd.printf("%0.2f %0.2f %0.2f\r\n", ax, ay, az);
+  M5.Lcd.printf("%0.2f %0.2f %0.2f\r\n", gx, gy, gz);
+  delay(500);
 }
 
