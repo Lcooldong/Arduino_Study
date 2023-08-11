@@ -1,15 +1,28 @@
 #include <Arduino.h>
-#include <Wire.h>
+#include "M5Atom.h"
+#include "neopixel.h"
 
-
-
+long count = 0;
+MyNeopixel* myNeopixel = new MyNeopixel();
 
 void setup() {
+  M5.begin(false, true, false);
   Serial.begin(115200);
-  Serial.println("112233");
+  myNeopixel->InitNeopixel();
+  delay(50);
+  Serial.println("Start Atom");
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  if(M5.Btn.wasPressed())
+  {
+    Serial.printf("Count : %d\r\n", count++);
+    delay(50);
+  }
+  
+  M5.update();  // M5.Btn.read();
 }
+
+
 
