@@ -10,16 +10,20 @@
 //#define WEBSERVER_H
 #include <ESPAsyncWebServer.h>
 //#include  <WiFiManager.h>
-#include <ESPAsyncWiFiManager.h> 
+#include <ESPAsyncWiFiManager.h>
+#include <Servo.h>
+
 
 #define UNSIGNED_LONG_LIMIT 4000000000
 #define RECONNECT_INTERVAL 10000
 #define ON_OFF_INTERVAL 2000
-#define PC_ON_ANALOG_VALUE 4000
+#define PC_ON_ANALOG_VALUE 0
+// #define PC_ON_ANALOG_VALUE 4000
 
 const char* PARAM_INPUT_1 = "state";
 
 const int output = 4;
+const int servoPin = 21;
 const int buttonPin = 3;
 const int relay = 20;
 const int volt_input = 1;
@@ -48,7 +52,7 @@ unsigned long wifiCurrentTime = 0;
 DNSServer dns;
 AsyncWebServer WiFi_server(80); //  WiFi Manager
 
-
+Servo myservo;
 AsyncWebServer server(5000);  // 스위치 서버
 AsyncEventSource events("/events");
 MyNeopixel* myNeopixel = new MyNeopixel();
@@ -72,25 +76,25 @@ void setup(){
   pinMode(relay, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(volt_input, INPUT_PULLUP);
-
+  myservo.attach(servoPin);
   myLittleFS->InitLitteFS();
   myNeopixel->InitNeopixel();
   InitU8g2();
   digitalWrite(relay, LOW);
   //digitalWrite(output, LOW);
-  for (int i = 0; i < 10; i++)
-  {
-    if(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
-    {
-      digitalWrite(output, HIGH);
-      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
-    }
-    else
-    {
-      digitalWrite(output, LOW);
-      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
-    }
-  }
+  // for (int i = 0; i < 10; i++)
+  // {
+  //   if(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
+  //   {
+  //     digitalWrite(output, HIGH);
+  //     myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
+  //   }
+  //   else
+  //   {
+  //     digitalWrite(output, LOW);
+  //     myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
+  //   }
+  // }
 
   // KT
   // IPAddress ip (172, 30, 1, 41);  // M5stamp -> 40, LCD 0.42-> 41
@@ -114,7 +118,7 @@ void setup(){
   }
   else
   {
-    const char* ssid = "KT_GiGA_2G_Wave2_1205";
+    const char* ssid = "Cooldong";
     const char* password = "8ec4hkx000";
     WiFi.begin(ssid, password);
   }
@@ -267,23 +271,23 @@ void loop() {
     {
       events.send("ping",NULL,millis());
 
-      if(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
-      {
-        digitalWrite(output, HIGH);
-        // On 이벤트 잘 작동 X -> 처음 킬 때는 잘 작동함
-        events.send(String("On").c_str(), "current_on", millis());
-        myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 255), 5, 50);
-        showLcdText(0, 40 , "Status:[ On ]");      
-      }
-      else
-      {
-        digitalWrite(output, LOW);
-        Serial.println("EVENT");
-        events.send(String("Off").c_str(), "current_off", millis());
-        myNeopixel->pickOneLED(0, myNeopixel->strip->Color(200, 50, 0), 5, 50);
-        showLcdText(0, 40 , "Status:[ OFF ]");
-        delay(500);
-      }
+      // if(analogRead(volt_input) > PC_ON_ANALOG_VALUE)
+      // {
+      //   digitalWrite(output, HIGH);
+      //   // On 이벤트 잘 작동 X -> 처음 킬 때는 잘 작동함
+      //   events.send(String("On").c_str(), "current_on", millis());
+      //   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 255), 5, 50);
+      //   showLcdText(0, 40 , "Status:[ On ]");      
+      // }
+      // else
+      // {
+      //   digitalWrite(output, LOW);
+      //   Serial.println("EVENT");
+      //   events.send(String("Off").c_str(), "current_off", millis());
+      //   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(200, 50, 0), 5, 50);
+      //   showLcdText(0, 40 , "Status:[ OFF ]");
+      //   delay(500);
+      // }
       lastOnOffTime = millis();
 
       if (lastOnOffTime  > UNSIGNED_LONG_LIMIT)
@@ -304,6 +308,10 @@ void loop() {
       }
       myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
       reconnectTime = millis();
+      if (reconnectTime > UNSIGNED_LONG_LIMIT)
+      {
+        ESP.restart();
+      }
     }
   }
 }
@@ -356,6 +364,7 @@ void turnOnOffRelay()
   {
     myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
     digitalWrite(relay, HIGH);
+    myservo.write(90);
     delay(50);
 
     onFlag = false;
@@ -364,6 +373,7 @@ void turnOnOffRelay()
   {
     myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 50, 50), 5, 50);
     digitalWrite(relay, HIGH);
+    myservo.write(0);
     delay(50);
     offFlag = false;
   }
