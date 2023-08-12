@@ -1,11 +1,18 @@
 #include <Arduino.h>
 #include <Servo.h>
 
+<<<<<<< Updated upstream
 //#define FULL_DEGREE
 
+=======
+#include <SPI.h>
+#include <Wire.h>
+#include <WiFi.h>
+>>>>>>> Stashed changes
 
 #define LIMIT_SENSOR_PIN 4
-#define SERVO_PIN 5
+#define SERVO_PIN 23
+#define BTN_PIN 39
 
 
 Servo myservo;
@@ -15,13 +22,28 @@ int pos = 0;
 void setup() {
   Serial.begin(115200);
   pinMode(LIMIT_SENSOR_PIN, INPUT_PULLUP);
+  pinMode(BTN_PIN, INPUT_PULLUP);
   myservo.attach(SERVO_PIN);
 
 }
 
 void loop() {
+<<<<<<< Updated upstream
 
 #ifdef FULL_DEGREE
+=======
+  if(digitalRead(BTN_PIN))
+  {
+    myservo.write(90);
+    delay(100);
+  }
+  else
+  {
+    myservo.write(0);
+    delay(100);
+  }
+  
+>>>>>>> Stashed changes
   if(!digitalRead(LIMIT_SENSOR_PIN)) // Pressed -> 0,  Release -> 1
   {
     myservo.write(90);  // Stop
