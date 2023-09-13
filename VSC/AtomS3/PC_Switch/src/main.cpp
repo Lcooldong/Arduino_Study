@@ -1,11 +1,12 @@
 #include <Arduino.h>
-#include "M5AtomS3.h"
+//#include "M5AtomS3.h"
 
 #include "WiFi.h"
 #include <PubSubClient.h>
 #include <ESPAsyncWebServer.h>
 #include "ESPAsyncWiFiManager.h"
 
+#include "ImageViewer.hpp"
 #include "MyLittleFS.h"
 #include "img_res.c"
 
@@ -13,7 +14,7 @@ MyLittleFS* myLittleFS = new MyLittleFS();
 AsyncWebServer server(80);
 DNSServer dns;
 
-
+ImageViewer viewer;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -21,10 +22,27 @@ const char* mqtt_server = "mqtt.m5stack.com";
 
 bool btnToggle = false;
 
+void forever(void) {
+    while (true) {
+        delay(1);
+    }    
+}
+
 void setup() {
-  M5.begin(true, true, true, true);
- 
-  myLittleFS->InitLitteFS();
+  // M5.begin(true, true, true, true);
+   
+ // myLittleFS->InitLitteFS();
+  USBSerial.begin(115200);
+  USBSerial.flush();
+  delay(1200);
+  // SPIFFS 적용됨
+  if (!viewer.begin()) {
+        forever();
+  }
+  
+  myLittleFS->listDir(SPIFFS, "/", 0);
+  USBSerial.printf("%s\n", "hello");
+
   // AsyncWiFiManager wifiManager(&server,&dns);
   // wifiManager.autoConnect("AutoConnectAP");
   // Serial.println("connected...yeey :)");
@@ -39,15 +57,16 @@ uint8_t num[3] = {0x00, 0x00, 0x00};
 
 
 void loop() {
-
-  M5.update();
-  //M5.Lcd.drawCircle(64, 64, 4, 0xFFFFFF);
-  M5.Lcd.drawBitmap(64, 64, 10, 10,  num);
-  num[0] += 1;
-  num[1] += 1;
-  USBSerial.printf( "%d\n", num[0]);
-  //num[1] += 1;
-  delay(100);
+  viewer.update();
+    delay(100);
+  // M5.update();
+  // //M5.Lcd.drawCircle(64, 64, 4, 0xFFFFFF);
+  // M5.Lcd.drawBitmap(64, 64, 10, 10,  num);
+  // num[0] += 1;
+  // num[1] += 1;
+  // USBSerial.printf( "%d\n", num[0]);
+  // //num[1] += 1;
+  // delay(100);
   // // 한번 눌렀을 때(020), 꾹 눌렀을 때(02111)
   // int btn_state = M5.Btn.pressedFor(1000) ? 1 : M5.Btn.wasPressed() ? 2 : 0;
   // USBSerial.print(btn_state);

@@ -3,6 +3,8 @@
 
 #include <FS.h>         // ESP8266
 #include <LittleFS.h>   // ESP32
+#include <SPIFFS.h>
+
 
 #define FORMAT_LITTLEFS_IF_FAILED true
 #define LINE Serial.println("\n=====================================\n")
@@ -15,6 +17,7 @@ class MyLittleFS
 {
 public:
     void InitLitteFS();
+    void InitSPIFFS();
     void listDir(fs::FS &fs, const char * dirname, uint8_t levels);
     void createDir(fs::FS &fs, const char * path);
     void removeDir(fs::FS &fs, const char * path);

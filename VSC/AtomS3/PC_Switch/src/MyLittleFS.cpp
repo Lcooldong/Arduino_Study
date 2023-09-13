@@ -3,6 +3,7 @@
 void MyLittleFS::InitLitteFS()
 {
   Serial.print("Mounting LittleFS filesystem...");
+
   if(!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED))
   {
     Serial.println("ERROR: LittleFS Mount Failed!");
@@ -11,6 +12,20 @@ void MyLittleFS::InitLitteFS()
   {
     Serial.println("Mounted!");
   }
+}
+
+void MyLittleFS::InitSPIFFS()
+{
+Serial.print("Mounting LittleFS filesystem...");
+
+  if(!SPIFFS.begin(FORMAT_LITTLEFS_IF_FAILED))
+  {
+    Serial.println("ERROR: LittleFS Mount Failed!");
+  }
+  else
+  {
+    Serial.println("Mounted!");
+  }        
 }
 
 void MyLittleFS::listDir(fs::FS &fs, const char * dirname, uint8_t levels)\
@@ -49,6 +64,7 @@ void MyLittleFS::listDir(fs::FS &fs, const char * dirname, uint8_t levels)\
         } else {
             Serial.print("  FILE: ");
             Serial.print(file.name());
+            USBSerial.print(file.name());
             Serial.print("  SIZE: ");
 
 #ifdef CONFIG_LITTLEFS_FOR_IDF_3_2
