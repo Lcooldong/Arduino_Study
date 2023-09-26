@@ -11,7 +11,7 @@ void setup() {
   myNeopixel->InitNeopixel();
   delay(50);
   Serial.println("Start Atom");
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 255), 50, 50);
 }
 
 void loop() {
