@@ -1,5 +1,9 @@
-#define I2C_SCL 7
-#define I2C_SDA 8
+//#define I2C_SCL 7
+//#define I2C_SDA 8
+
+// Nano board
+#define I2C_SCL A5
+#define I2C_SDA A4
 //#define SWITCH 21
 #define BTN 3
 
@@ -11,6 +15,7 @@
 unsigned long lastTime = 0;
 unsigned long currentTime = 0;
 unsigned int interval = 50;
+static int count1 = 0;
 
 MyNeopixel* myNeopixel = new MyNeopixel();
 bool toggleFlag = false;
@@ -22,7 +27,7 @@ void setup() {
   myNeopixel->InitNeopixel();
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
 
-  //pinMode(SWITCH, OUTPUT);
+  pinMode(BTN, OUTPUT);
   
   Wire.begin(I2C_SDA, I2C_SCL);
   
@@ -35,38 +40,59 @@ void setup() {
 
 void loop() {
 
-
-  if (Serial.available())
+  if(Serial.available())
   {
-    String text = Serial.readStringUntil('\n');
-    //Serial.printf("Input Text :  %s  (%d)\r\n", text, text.length());
-    if(text == "on")
+    char charText = Serial.read();
+    if( charText == 'i')
     {
       myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
-     // digitalWrite(SWITCH, HIGH);
-     while (true)
-     {
-      if (millis() - lastTime > interval)
-      {
-          lastTime = millis();
-          if (lightMeter.measurementReady()) {
-          float lux = lightMeter.readLightLevel();
-          Serial.printf("%.2f\n", lux);
-        }  
-      }
-      else
-      {
-        String cancelText = Serial.readString();
-        if(cancelText == "off\n")
+        if (lightMeter.measurementReady()) 
         {
-          myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
-          break;
-        }
-      }
-     }
+          float lux = lightMeter.readLightLevel();
+          //Serial.printf("%.2f\n", lux);
+          if(lux > 0)
+          {
+            Serial.println(lux);
+            delay(1);
+          }
+        }        
     }
-
   }
+
+  // if (Serial.available())
+  // {
+  //   String text = Serial.readStringUntil('\n');
+  //   //Serial.printf("Input Text :  %s  (%d)\r\n", text, text.length());
+  //   if(text == "on")
+  //   {
+  //     myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
+  //    // digitalWrite(SWITCH, HIGH);
+  //    while (true)
+  //    {
+  //     if (millis() - lastTime > interval)
+  //     {
+  //         lastTime = millis();
+  //         // if (lightMeter.measurementReady()) {
+  //         // float lux = lightMeter.readLightLevel();
+  //         // //Serial.printf("%.2f\n", lux);
+  //         // Serial.println(lux);          
+  //        //} 
+
+  //       Serial.printf("%d\n",count1++);
+  //     }
+  //     else
+  //     {
+  //       String cancelText = Serial.readString();
+  //       if(cancelText == "off\n")
+  //       {
+  //         myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
+  //         break;
+  //       }
+  //     }
+  //    }
+  //   }
+
+  // }
 
 }
 
