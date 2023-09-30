@@ -31,6 +31,7 @@ int value = 0;
 void forever();
 void callback(char* topic, byte* payload, unsigned int length);
 void reConnect();
+void powerOnOff();
 
 
 bool btnToggle = false;
@@ -82,7 +83,6 @@ void setup() {
       USBSerial.print(".");
       M5.update();
 
-      digitalWrite(RELAY_PIN, HIGH);
       if (millis() - connectionLastTime > WIFI_CONNECTION_INTERVAL)
       {
         USBSerial.println("Start WiFiManager => 192.168.4.1");
@@ -165,13 +165,11 @@ void loop() {
 
     USBSerial.print("Publish message: ");
     USBSerial.println(msg);
-    client.publish("M5Stack", msg);  // Publishes a message to the specified    
+
+    // Test -> Android
+    client.publish("M5Stack/LCD/AtomS3/PC_SWITCH", msg);  // Publishes a message to the specified    
     
-    digitalWrite(RELAY_PIN, LOW);
-    delay(100);
-    digitalWrite(RELAY_PIN, HIGH);
-    delay(100);
-    digitalWrite(RELAY_PIN, LOW);
+    powerOnOff();
   }
 
   // unsigned long now = millis();  // Obtain the host startup duration.  获取主机开机时长
@@ -210,10 +208,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
         USBSerial.print((char)payload[i]);
     }
     USBSerial.println();
- //   USBSerial.println((char *)p);
 
-  //  free(p);
-    //if(){}
+
+    
 }
 
 void reConnect() {
@@ -226,10 +223,9 @@ void reConnect() {
         if (client.connect(clientId.c_str())) {
             USBSerial.println("connected");
             // Once connected, publish an announcement to the topic.
-            // 一旦连接，发送一条消息至指定话题
-            client.publish("M5Stack", "hello world");
-            // ... and resubscribe.  重新订阅话题
-            client.subscribe("M5Stack");
+            client.publish("M5Stack/LCD/AtomS3/PC_SWITCH", "hello world"); // publish To Connect
+
+            client.subscribe("M5Stack/LCD/AtomS3/PC_SWITCH");    // Subsrcibe
         } else {
             USBSerial.print("failed, rc=");
             USBSerial.print(client.state());
@@ -237,4 +233,14 @@ void reConnect() {
             delay(5000);
         }
     }
+}
+
+
+void powerOnOff()
+{
+    digitalWrite(RELAY_PIN, LOW);
+    delay(100);
+    digitalWrite(RELAY_PIN, HIGH);
+    delay(100);
+    digitalWrite(RELAY_PIN, LOW);
 }
