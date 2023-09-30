@@ -29,8 +29,8 @@ public:
     void writeFile2(fs::FS &fs, const char * path, const char * message);
     void deleteFile2(fs::FS &fs, const char * path);
 
-    bool saveConfig(String SSID, String PASS);
-    bool loadConfig();
+    bool saveConfig(fs::FS &fs, String SSID, String PASS);
+    bool loadConfig(fs::FS &fs);
 
     char ssid[32];
     char pass[32];

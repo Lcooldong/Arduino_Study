@@ -1,4 +1,5 @@
-#define RELAY_PIN 1
+#define RELAY_PIN 8
+#define WIFI_CONNECTION_INTERVAL 10000
 
 #include <Arduino.h>
 
@@ -10,7 +11,7 @@
 #include "ImageViewer.hpp"
 #include "MyLittleFS.h"
 
-MyLittleFS* myLittleFS = new MyLittleFS();
+MyLittleFS* mySPIFFS = new MyLittleFS();
 AsyncWebServer server(80);
 DNSServer dns;
 
@@ -19,8 +20,7 @@ ImageViewer viewer;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* ssid        = "Cooldong";
-const char* password    = "8ec4hkx000";
+
 const char* mqtt_server = "mqtt.m5stack.com";
 
 unsigned long lastMsg = 0;
@@ -39,37 +39,86 @@ bool btnToggle = false;
 
 void setup() {
 
- // myLittleFS->InitLitteFS();
+ // myLittleFS->InitSPIFFS();
   
   AsyncWiFiManager wifiManager(&server,&dns);
   USBSerial.begin(115200);
   USBSerial.flush();
   delay(1000);
+
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
   // SPIFFS 적용됨
   if (!viewer.begin()) {
         forever();
   }
   
 //  myLittleFS->listDir(SPIFFS, "/", 0);
-  USBSerial.printf("Connecting to %s", ssid);
-  WiFi.mode(WIFI_STA);  // Set the mode to WiFi station mode.  设置模式为WIFI站模式
-  WiFi.begin(ssid, password);  // Start Wifi connection.  开始wifi连接
+  USBSerial.println("Connecting to WiFi...");
 
+  if(mySPIFFS->loadConfig(SPIFFS))
+  {
+    USBSerial.println(mySPIFFS->ssid);
+    USBSerial.println(mySPIFFS->pass);
+    M5.update();
+
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.begin(mySPIFFS->ssid, mySPIFFS->pass);
+    USBSerial.println("Connect to Flash Memory");
+    M5.update();
+  }
+  else
+  {
+    const char* ssid        = "Cooldong";
+    const char* password    = "8ec4hkx000";
+    WiFi.begin(ssid, password);
+    USBSerial.println("Connect to HOME");
+    M5.update();
+  }
+
+  unsigned long connectionLastTime = millis();
   while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       USBSerial.print(".");
+      M5.update();
+
+      digitalWrite(RELAY_PIN, HIGH);
+      if (millis() - connectionLastTime > WIFI_CONNECTION_INTERVAL)
+      {
+        USBSerial.println("Start WiFiManager => 192.168.4.1");
+        M5.update();
+        wifiManager.resetSettings();
+        bool wmRes = wifiManager.autoConnect("PC_SWITCH");
+        if(!wmRes)
+        {
+          USBSerial.println("Failed to connect");
+        }
+        else
+        {
+          USBSerial.printf("\nSuccess\n");
+          M5.update();
+          M5.Lcd.clear();
+          M5.Lcd.println("Success");
+          
+          mySPIFFS->saveConfig(SPIFFS, wifiManager.getConfiguredSTASSID(), wifiManager.getConfiguredSTAPassword());
+          delay(100);
+          ESP.restart();
+
+          break;  // Temp
+        }
+      }
+
   }
-  USBSerial.printf("\nSuccess\n");
-  M5.Lcd.println("Success");
   
-  wifiManager.autoConnect("PC_SWITCH");
-  USBSerial.printf("%s\n", "WiFi");
+  
+  
+  USBSerial.printf("\n%s\r\n", "Start MQTT Setup");
   M5.update();
 
   client.setServer(mqtt_server, 1883);  // Sets the server details. 
   client.setCallback(callback);  // Sets the message callback function.  
 
-  pinMode(RELAY_PIN, OUTPUT);
+  
   // M5.IMU.begin();
   // USBSerial.printf("0x%02x\n", M5.IMU.whoAmI());
 
@@ -116,8 +165,13 @@ void loop() {
 
     USBSerial.print("Publish message: ");
     USBSerial.println(msg);
-    client.publish("M5Stack", msg);  // Publishes a message to the specified
-    delay(500);
+    client.publish("M5Stack", msg);  // Publishes a message to the specified    
+    
+    digitalWrite(RELAY_PIN, LOW);
+    delay(100);
+    digitalWrite(RELAY_PIN, HIGH);
+    delay(100);
+    digitalWrite(RELAY_PIN, LOW);
   }
 
   // unsigned long now = millis();  // Obtain the host startup duration.  获取主机开机时长
@@ -147,7 +201,7 @@ void forever(void) {
 void callback(char* topic, byte* payload, unsigned int length) {
     USBSerial.print("Message arrived [");
     USBSerial.print(topic);
-    USBSerial.print("] ->");
+    USBSerial.print("] -> ");
 
   //  byte* p = (byte*)malloc(length);
    // memcpy(p, payload, length);
