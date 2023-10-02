@@ -52,6 +52,7 @@ void setup() {
   delay(1000);
 
   pinMode(RELAY_PIN, OUTPUT);
+  //pinMode(FAN_ON_PIN, INPUT_PULLUP);
   digitalWrite(RELAY_PIN, LOW);
   // SPIFFS 적용됨
   if (!viewer.begin()) {
@@ -151,17 +152,19 @@ void loop() {
   // IMAGE
   if (millis() - lastTime > interval)
   {
-    viewer.update();
+    //viewer.update();
     lastTime = millis();
     int pcState = analogRead(FAN_ON_PIN);
-    
+    //M5.Lcd.print(pcState);
+    //M5.update();
+    //M5.Lcd.clear();
     
     if(pcState > 4000)
     {
       snprintf(msg, MSG_BUFFER_SIZE, "ON");
       pcState = true;
     }
-    else if (pcState < 100)
+    else
     {
       snprintf(msg, MSG_BUFFER_SIZE, "OFF");
       pcState = false;
@@ -323,7 +326,7 @@ void shutdown()
 {
   int fanValue = analogRead(FAN_ON_PIN);
   
-  while( fanValue >= 4000)
+  while( fanValue > 4000)
   {
     digitalWrite(RELAY_PIN, HIGH);
     delay(100);
