@@ -152,14 +152,14 @@ void loop() {
   // IMAGE
   if (millis() - lastTime > interval)
   {
-    //viewer.update();
+    viewer.update();
     lastTime = millis();
-    int pcState = analogRead(FAN_ON_PIN);
+    int analogValue = analogRead(FAN_ON_PIN);
     //M5.Lcd.print(pcState);
     //M5.update();
     //M5.Lcd.clear();
     
-    if(pcState > 4000)
+    if(analogValue > 4000)
     {
       snprintf(msg, MSG_BUFFER_SIZE, "ON");
       pcState = true;
@@ -179,11 +179,15 @@ void loop() {
   if(M5.BtnA.pressedFor(2000))
   {
     shutdown();
+    
   }
   else if(M5.BtnA.wasClicked())
   {
     powerOnOff();
+    USBSerial.println("Button Clicked");
   }
+  
+
   // USBSerial.println(analogRead(FAN_ON_PIN));
   // delay(500);
   // if(M5.BtnA.isPressed())
@@ -252,7 +256,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     USBSerial.print(") -> ");
     memcpy(&receivedMsg, payload, length);
 
-    USBSerial.printf("Data : %s", receivedMsg);
+    USBSerial.printf("Data : %d =>> %s", pcState, receivedMsg);
     USBSerial.println();
     
 
