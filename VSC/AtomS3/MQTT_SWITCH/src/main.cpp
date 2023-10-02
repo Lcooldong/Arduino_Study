@@ -1,4 +1,6 @@
 #define RELAY_PIN 8
+#define FAN_ON_PIN 7
+#define RESTART_RELAY_PIN  
 #define WIFI_CONNECTION_INTERVAL 10000
 
 #include <Arduino.h>
@@ -26,13 +28,15 @@ const char* mqtt_server = "mqtt.m5stack.com";
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
+char receivedMsg[MSG_BUFFER_SIZE];
 int value = 0;
+bool pcState = true;
 
 void forever();
 void callback(char* topic, byte* payload, unsigned int length);
 void reConnect();
 void powerOnOff();
-
+void shutdown();
 
 bool btnToggle = false;
 
@@ -134,7 +138,8 @@ int count = 0;
 unsigned long lastTime = 0;
 unsigned int interval = 100;
 unsigned long restartTime = 4000000000;
-
+unsigned long beforeShutdown = 0;
+unsigned int shutdownTimeOut = 10000;
 
 void loop() {
 
@@ -148,29 +153,67 @@ void loop() {
   {
     viewer.update();
     lastTime = millis();
-
+    int pcState = analogRead(FAN_ON_PIN);
+    
+    
+    if(pcState > 4000)
+    {
+      snprintf(msg, MSG_BUFFER_SIZE, "ON");
+      pcState = true;
+    }
+    else if (pcState < 100)
+    {
+      snprintf(msg, MSG_BUFFER_SIZE, "OFF");
+      pcState = false;
+    }
+    client.publish("M5Stack/LCD/AtomS3/PC_STATE", msg);
     if(lastTime > restartTime)
     {
       ESP.restart();
     }
   }
 
-
-
-  if(M5.BtnA.isPressed())
-  {    
-    USBSerial.printf("Count : %d\r\n", count++);
-    ++value;
-    snprintf(msg, MSG_BUFFER_SIZE, "hello world #%ld", value);  // Format to the specified string and store it in MSG.
-
-    USBSerial.print("Publish message: ");
-    USBSerial.println(msg);
-
-    // Test -> Android
-    client.publish("M5Stack/LCD/AtomS3/PC_SWITCH", msg);  // Publishes a message to the specified    
-    
+  if(M5.BtnA.pressedFor(2000))
+  {
+    shutdown();
+  }
+  else if(M5.BtnA.wasClicked())
+  {
     powerOnOff();
   }
+  // USBSerial.println(analogRead(FAN_ON_PIN));
+  // delay(500);
+  // if(M5.BtnA.isPressed())
+  // {    
+  //   USBSerial.printf("Count : %d\r\n", count++);
+
+  //   snprintf(msg, MSG_BUFFER_SIZE, "hello world #%ld", count);  // Format to the specified string and store it in MSG.
+
+  //   USBSerial.print("Publish message: ");
+  //   USBSerial.println(msg);
+
+  //   // Test -> Android
+  //   //  client.publish("M5Stack/LCD/AtomS3/PC_SWITCH", msg);  // Publishes a message to the specified    
+    
+  //   //powerOnOff();
+  //   M5.update();
+  //   delay(100);
+  // }
+  // if(count > 20)
+  // {
+  //   shutdown();
+  //   count = 0;
+  // }
+  // else if (M5.BtnA.wasReleased())
+  // {
+  //   count = 0;
+  // }
+  // else if (M5.BtnA.isReleased())
+  // {
+  //   USBSerial.println("PowerOff");
+  //   delay(1000);
+  //   //powerOnOff();
+  // }
 
   // unsigned long now = millis();  // Obtain the host startup duration.  获取主机开机时长
   //   if (now - lastMsg > 2000) {
@@ -196,21 +239,52 @@ void forever(void) {
     }    
 }
 
+
 void callback(char* topic, byte* payload, unsigned int length) {
     USBSerial.print("Message arrived [");
     USBSerial.print(topic);
-    USBSerial.print("] -> ");
+    USBSerial.print("] : ");
+    USBSerial.print("(");
+    USBSerial.print(length);
+    USBSerial.print(") -> ");
+    memcpy(&receivedMsg, payload, length);
+
+    USBSerial.printf("Data : %s", receivedMsg);
+    USBSerial.println();
+    
+
+    if(!strcmp(receivedMsg, "ON"))
+    {
+      if (!pcState)
+      {
+        USBSerial.println("turn on pc");
+        powerOnOff();
+      }
+      
+    }
+    else if (!strcmp(receivedMsg, "OFF"))
+    {
+      if (pcState)
+      {
+        USBSerial.println("turn off pc");
+        powerOnOff();
+      }
+    }
+
+    memset(&receivedMsg, 0x00, length);
+
+    M5.update();
 
   //  byte* p = (byte*)malloc(length);
    // memcpy(p, payload, length);
 
-    for (int i = 0; i < length; i++) {
-        USBSerial.print((char)payload[i]);
-    }
-    USBSerial.println();
+   // free(p);
 
-
+    // for (int i = 0; i < length; i++) {
+    //     USBSerial.print((char)payload[i]);
+    // }
     
+
 }
 
 void reConnect() {
@@ -243,4 +317,32 @@ void powerOnOff()
     digitalWrite(RELAY_PIN, HIGH);
     delay(100);
     digitalWrite(RELAY_PIN, LOW);
+}
+
+void shutdown()
+{
+  int fanValue = analogRead(FAN_ON_PIN);
+  
+  while( fanValue >= 4000)
+  {
+    digitalWrite(RELAY_PIN, HIGH);
+    delay(100);
+
+    if(millis() - beforeShutdown > shutdownTimeOut)
+    {
+      beforeShutdown = millis();
+      USBSerial.println("Shutdown TimeOut");
+      M5.update();
+      break;
+    }
+  }
+
+  if ( fanValue < 1000)
+  {
+    USBSerial.println("PC was already turned off | Check Wire Connection");
+    M5.update();
+  }
+
+  digitalWrite(RELAY_PIN, LOW);
+
 }
