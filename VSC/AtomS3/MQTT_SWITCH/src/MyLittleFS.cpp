@@ -3,6 +3,7 @@
 void MyLittleFS::InitLitteFS()
 {
   Serial.print("Mounting LittleFS filesystem...");
+
   if(!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED))
   {
     Serial.println("ERROR: LittleFS Mount Failed!");
@@ -13,7 +14,19 @@ void MyLittleFS::InitLitteFS()
   }
 }
 
+void MyLittleFS::InitSPIFFS()
+{
+Serial.print("Mounting LittleFS filesystem...");
 
+  if(!SPIFFS.begin(FORMAT_LITTLEFS_IF_FAILED))
+  {
+    Serial.println("ERROR: LittleFS Mount Failed!");
+  }
+  else
+  {
+    Serial.println("Mounted!");
+  }        
+}
 
 void MyLittleFS::listDir(fs::FS &fs, const char * dirname, uint8_t levels)\
 {
@@ -51,6 +64,7 @@ void MyLittleFS::listDir(fs::FS &fs, const char * dirname, uint8_t levels)\
         } else {
             Serial.print("  FILE: ");
             Serial.print(file.name());
+            USBSerial.print(file.name());
             Serial.print("  SIZE: ");
 
 #ifdef CONFIG_LITTLEFS_FOR_IDF_3_2
@@ -229,7 +243,7 @@ void MyLittleFS::deleteFile2(fs::FS &fs, const char * path){
     LINE;
 }
 
-bool MyLittleFS::saveConfig(String SSID, String PASS)
+bool MyLittleFS::saveConfig(fs::FS &fs, String SSID, String PASS)
 {
     String configData;
 
@@ -239,7 +253,7 @@ bool MyLittleFS::saveConfig(String SSID, String PASS)
     strcpy(pass, PASS.c_str());
     configData = String("\"SSID\":" + SSID + ",\"PASS\":" + PASS ); // 값 추가
 
-    File configFile = LittleFS.open(configFilePath, "w");
+    File configFile = fs.open(configFilePath, "w");
     if (!configFile) 
     {
         Serial.println("Failed to open config file for writing");
@@ -252,9 +266,9 @@ bool MyLittleFS::saveConfig(String SSID, String PASS)
     return true;
 }
 
-bool MyLittleFS::loadConfig()
+bool MyLittleFS::loadConfig(fs::FS &fs)
 {
-    File configFile = LittleFS.open(configFilePath, "r");
+    File configFile = fs.open(configFilePath, "r");
 
     if(!configFile)
     {
