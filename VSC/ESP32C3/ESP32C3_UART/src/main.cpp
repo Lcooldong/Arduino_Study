@@ -1,11 +1,23 @@
-//#define I2C_SCL 7
-//#define I2C_SDA 8
+#define M5STAMP_C3
+//#define ARDUINO_NANO
+
+#ifdef M5STAMP_C3
+
+#define BTN 3
+#define I2C_SCL 7
+#define I2C_SDA 8
+
+#endif
+
 
 // Nano board
+#ifdef ARDUINO_NANO
+
 #define I2C_SCL A5
 #define I2C_SDA A4
-//#define SWITCH 21
-#define BTN 3
+
+#endif
+
 
 #include <Arduino.h>
 #include "neopixel.h"
@@ -28,9 +40,11 @@ void setup() {
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
 
   pinMode(BTN, OUTPUT);
-  
+
+#ifdef M5STAMP_C3  
   Wire.begin(I2C_SDA, I2C_SCL);
-  
+#endif
+
   if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
     Serial.println(F("BH1750 Advanced begin"));
   } else {
@@ -46,16 +60,16 @@ void loop() {
     if( charText == 'i')
     {
       myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
-        if (lightMeter.measurementReady()) 
+      if (lightMeter.measurementReady()) 
+      {
+        float lux = lightMeter.readLightLevel();
+        //Serial.printf("%.2f\n", lux);
+        if(lux > 0)
         {
-          float lux = lightMeter.readLightLevel();
-          //Serial.printf("%.2f\n", lux);
-          if(lux > 0)
-          {
-            Serial.println(lux);
-            delay(1);
-          }
-        }        
+          Serial.println(lux);
+          delay(1);
+        }
+      }        
     }
   }
 
