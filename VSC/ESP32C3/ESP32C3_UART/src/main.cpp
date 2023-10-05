@@ -18,6 +18,13 @@
 
 #endif
 
+#ifdef M5STAMP_C3
+
+#define I2C_SCL 7
+#define I2C_SDA 8
+
+#endif
+
 
 #include <Arduino.h>
 #include "neopixel.h"

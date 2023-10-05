@@ -6,21 +6,30 @@
 #include <Adafruit_DotStar.h>
 #include <Wire.h>
 #include <SPI.h> 
+#include <BH1750.h>
 
 #define SERVO_PIN 33
 
 #define NUMPIXELS 8
-#define DATAPIN    25
-#define CLOCKPIN   21
+//#define DATAPIN    25
+//#define CLOCKPIN   21
 
+#define DATA_PIN    19
+#define CLOCK_PIN   22
+
+#define I2C_SCL 21
+#define I2C_SDA 25
 
 
 long count = 0;
 int pos = 0;
-int targetPos = 135;
+int targetPos = 150;
 MyNeopixel* myNeopixel = new MyNeopixel();
 Servo gripperServo;
-Adafruit_DotStar strip(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
+BH1750 lightMeter;
+Adafruit_DotStar strip(NUMPIXELS, DATA_PIN, CLOCK_PIN, DOTSTAR_BRG);
+
+
 
 void setup() {
 
@@ -42,10 +51,17 @@ void setup() {
   Serial.println("Start Atom");
   
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 255), 50, 50);
+
+  if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
+    Serial.println(F("BH1750 Advanced begin"));
+  } else {
+    Serial.println(F("Error initialising BH1750"));
+  }
+
 }
 
 int      head  = 0, tail = -10; // Index of first 'on' and 'off' pixels
-uint32_t color = 0xFFFFFF;      // 'On' color (starts red)
+uint32_t color = 0x010101;      // 'On' color (starts red)
 
 void loop() {
   if(M5.Btn.wasPressed())
@@ -68,16 +84,25 @@ void loop() {
     delay(20);    
   }
   
-    
-
-  if (Serial.available())
+  if(Serial.available())
   {
-    String text = Serial.readStringUntil('n');
-
-    if(text == "1")
+    char charText = Serial.read();
+    if( charText == 'i')
     {
-      
-
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
+      if (lightMeter.measurementReady()) 
+      {
+        float lux = lightMeter.readLightLevel();
+        //Serial.printf("%.2f\n", lux);
+        if(lux > 0)
+        {
+          Serial.println(lux);
+          delay(1);
+        }
+      }        
+    }
+    else if(charText == 'o')
+    {
       if (pos == 0)
       {
         myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
@@ -90,11 +115,10 @@ void loop() {
         }
 
       }
-      
+
     }
-    else if (text = "2")
+    else if(charText == 'c')
     {
-      
       if (pos == targetPos)
       {
         myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
@@ -107,22 +131,10 @@ void loop() {
         }
 
       }
-
     }
-
-
-
-
-  }
-
-    
-
-  
-
-
-
-  
+  }  
 }
+  
 
 
 
