@@ -14,12 +14,15 @@
 //#define DATAPIN    25
 //#define CLOCKPIN   21
 
-#define DATA_PIN    19
-#define CLOCK_PIN   22
+#define BLINKT_DATA_PIN    19
+#define BLINKT_CLOCK_PIN   22
 
 #define I2C_SCL 21
 #define I2C_SDA 25
 
+#define G26_PIN 26
+#define G32_PIN 32
+#define G23_PIN 23
 
 long count = 0;
 int pos = 0;
@@ -27,8 +30,8 @@ int targetPos = 150;
 MyNeopixel* myNeopixel = new MyNeopixel();
 Servo gripperServo;
 BH1750 lightMeter;
-Adafruit_DotStar strip(NUMPIXELS, DATA_PIN, CLOCK_PIN, DOTSTAR_BRG);
-
+Adafruit_DotStar strip(NUMPIXELS, BLINKT_DATA_PIN, BLINKT_CLOCK_PIN, DOTSTAR_BRG);
+bool ledToggle = false;
 
 
 void setup() {
@@ -39,13 +42,16 @@ void setup() {
   strip.begin(); // Initialize pins for output
   strip.show();  // Turn all LEDs off ASAP
 
- if(!gripperServo.attached())
- {
-  gripperServo.setPeriodHertz(50);
-  gripperServo.attach(SERVO_PIN, 1000, 2000);
- }
- gripperServo.write(0);
+  if(!gripperServo.attached())
+  {
+    gripperServo.setPeriodHertz(50);
+    gripperServo.attach(SERVO_PIN, 1000, 2000);
+  }
+  gripperServo.write(0);
 
+  pinMode(G23_PIN, OUTPUT);
+  pinMode(G26_PIN, OUTPUT);
+  
 
   delay(50);
   Serial.println("Start Atom");
@@ -60,30 +66,25 @@ void setup() {
 
 }
 
-int      head  = 0, tail = -10; // Index of first 'on' and 'off' pixels
-uint32_t color = 0x010101;      // 'On' color (starts red)
+uint32_t color = 0x000000;      // 'On' color (starts red)
+int cnt = 0;
+bool led_state = false;
 
 void loop() {
   if(M5.Btn.wasPressed())
   {
     Serial.printf("Count : %d\r\n", count++);
 
-                     // Pause 20 milliseconds (~50 FPS)
-
-   
-              
+                     // Pause 20 milliseconds (~50 FPS)              
     
   }
   
   M5.update();  // M5.Btn.read();
 
-  for (int i = 0; i < NUMPIXELS; i++)
-  {
-    strip.setPixelColor(i, color); // 'On' pixel at head
-    strip.show();                     // Refresh strip
-    delay(20);    
-  }
+
   
+
+  // UART
   if(Serial.available())
   {
     char charText = Serial.read();
@@ -132,7 +133,45 @@ void loop() {
 
       }
     }
+    else if(charText == 'a')
+    {
+      digitalWrite(G23_PIN, led_state);
+      digitalWrite(G26_PIN, led_state);
+      
+
+      led_state = !led_state;
+
+      int value = analogRead(G32_PIN);
+
+      Serial.printf("Toggle LED : %d | %d\r\n", value ,led_state);
+      delay(1);
+    }
+    else if(charText == 't')
+    {
+      if(ledToggle)
+      {
+        color = 0x0F0F0F;
+      }
+      else
+      {
+        color = 0x000000;
+      }
+      for (int i = 0; i < NUMPIXELS; i++)
+      {
+        strip.setPixelColor(i, color); // 'On' pixel at head
+                             // Refresh strip            
+      }
+      strip.show();
+      ledToggle = !ledToggle;
+      delay(20);
+    }
+    
+
   }  
+
+  
+
+
 }
   
 
