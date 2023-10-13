@@ -85,7 +85,7 @@ void setup() {
    * |  0xff |        256         |       711ms      |        65535      |
    * ---------------------------------------------------------------------
    */
-  TCS3430.setIntegrationTime(/*aTime=*/0x23);
+  ////TCS3430.setIntegrationTime(/*aTime=*/0x23);
   /*
    * AGAIN: ALS Gain Control. Sets the gain of the ALS DAC.
    * ----------------------------------------------------------
@@ -100,14 +100,14 @@ void setup() {
    * |     3       |               64X Gain                   |
    * ----------------------------------------------------------
    */
-  TCS3430.setALSGain(/*aGian=*/3);
+  ////TCS3430.setALSGain(/*aGian=*/3);
   //128X high gain
   //TCS3430.setHighGAIN()
 
 /* Turn on the ALS interrupt function of the device */
 
   //mode = true : enable ALS Interrupt
-  TCS3430.setALSInterrupt(/*mode*/true);
+  ////TCS3430.setALSInterrupt(/*mode*/true);
 
   /*
    *                       APERS                              
@@ -147,14 +147,14 @@ void setup() {
    * |     0x0F    |   60 consecutive values out of range     |
    * ----------------------------------------------------------
    */
-  TCS3430.setInterruptPersistence(/*apers=*/0x05);
+  // TCS3430.setInterruptPersistence(/*apers=*/0x05);
 
-  // Set the threshold range(0-65535)
-  TCS3430.setCH0IntThreshold(/*thresholdL=*/50,/*thresholdH=*/100);
+  // // Set the threshold range(0-65535)
+  // TCS3430.setCH0IntThreshold(/*thresholdL=*/50,/*thresholdH=*/100);
 
-  Serial.println("If the light data exceeds the threshold, an interrupt is triggered and a warning is printed.");
+  // Serial.println("If the light data exceeds the threshold, an interrupt is triggered and a warning is printed.");
 
-  attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), handleInterrupt, FALLING);
+  // attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), handleInterrupt, FALLING);
 
 }
 
@@ -174,7 +174,7 @@ void loop() {
         uint16_t IR2Data = TCS3430.getIR2Data();
         String str = "X : " + String(XData) + "    Y : " + String(YData) + "    Z : " +  String(ZData) + "    IR1 : "+String(IR1Data) + "    IR2 : "+String(IR2Data);
         Serial.println(str);
-        ledcWrite(LED_CHANNEL, 255);
+        ledcWrite(LED_CHANNEL, 0);
         delay(1);
       }
       
