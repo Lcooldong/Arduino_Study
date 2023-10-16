@@ -3,6 +3,15 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include "neopixel.h"
+
+#include <iostream>
+using namespace std;
+#define M5STAMP_C3
+
+#ifdef M5STAMP_C3
+  #define BTN_PIN 3
+#endif  
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristicTX = NULL;
@@ -19,16 +28,20 @@ volatile uint32_t cnt = 0;
 unsigned long next_temp_read = 0;   // Next time step in milliseconds
 uint16_t temp_read_interval = 1000;  // This is in milliseconds
 
+MyNeopixel* myNeopixel = new MyNeopixel();
+
 
 // 서버 콜백함수 - 연결 상태 확인용
 class MyServerCallbacks: public BLEServerCallbacks 
 {
     void onConnect(BLEServer* pServer) {
       deviceConnected = true;
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 50);
     };
 
     void onDisconnect(BLEServer* pServer) {
       deviceConnected = false;
+      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
     }
 };
 
@@ -38,17 +51,36 @@ class MyCallbacks: public BLECharacteristicCallbacks
 
     void onWrite(BLECharacteristic *pCharacteristicTX) {
       std::string value = pCharacteristicTX->getValue();
-      const char* receivedText = value.c_str();
       
+      //String receivedText = pCharacteristicTX->getValue().c_str();
+      String receivedText = value.c_str();
+      //const char* receivedCharText = value.c_str();
+      //String receivedText = (String)receivedCharText;
+
+
+      // Get raw data
       if (value.length() > 0) 
       {
-        // Serial.print("Received value: ");
-        // for (int i = 0; i < value.length(); i++)
-        // {
-        //   Serial.print(value[i]);
-        // }
-        // Serial.println();
-        Serial.printf("Received Value : %s\r\n", receivedText);
+        Serial.print("Received value Array : ");
+        for (int i = 0; i < value.length(); i++)
+        {
+          Serial.print(value[i]);
+        }
+        Serial.println();
+        //Serial.printf("Received Value : %s\r\n", receivedCharText);
+        //Serial.printf("Received Value : %s\r\n", receivedText);
+
+        int redIndex = receivedText.indexOf(",");
+        int greenIndex = receivedText.indexOf(",", redIndex + 1);
+        int blueIndex = receivedText.indexOf(",", greenIndex + 1);
+        int length = receivedText.length();
+
+        String red = receivedText.substring(0, redIndex);
+        String green = receivedText.substring(redIndex + 1, greenIndex);
+        String blue = receivedText.substring(greenIndex + 1, blueIndex);
+        String brightness = receivedText.substring(blueIndex + 1, length);
+
+        myNeopixel->pickOneLED(0, myNeopixel->strip->Color(red.toInt(), green.toInt(), blue.toInt()), brightness.toInt(), 10);
 
       }
     }
@@ -59,7 +91,11 @@ class MyCallbacks: public BLECharacteristicCallbacks
 
 void setup() {
   Serial.begin(115200);
-
+  myNeopixel->InitNeopixel();
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
+#ifdef M5STAMP_C3
+  pinMode(BTN_PIN, INPUT_PULLUP);
+#endif
 
   BLEDevice::init("Gripper_Test");
 
@@ -67,22 +103,27 @@ void setup() {
   pServer->setCallbacks(new MyServerCallbacks());                 // 콜백함수
   BLEService *pService = pServer->createService(SERVICE_UUID);    // 서비스 생성
 
+
+  // 캐릭터 설정 - 보드 송신 부분
   pCharacteristicTX = pService->createCharacteristic(
-                      CHARACTERISTIC_UUID_TX,
-                      BLECharacteristic::PROPERTY_READ   |
-                      BLECharacteristic::PROPERTY_WRITE  |
-                      BLECharacteristic::PROPERTY_NOTIFY |
-                      BLECharacteristic::PROPERTY_INDICATE
+                      CHARACTERISTIC_UUID_TX,                     // TX UUID - 보통 NOTIFY 사용
+//                      BLECharacteristic::PROPERTY_READ   |
+//                      BLECharacteristic::PROPERTY_WRITE  |
+//                      BLECharacteristic::PROPERTY_NOTIFY |
+//                      BLECharacteristic::PROPERTY_INDICATE
+                      BLECharacteristic::PROPERTY_NOTIFY
                     );
 
+  // 디스크립터 - 보드 수신 부분
   pCharacteristicTX->addDescriptor(new BLE2902());
   BLECharacteristic * pCharacteristicRX = pService->createCharacteristic(
-                       CHARACTERISTIC_UUID_RX,
+                       CHARACTERISTIC_UUID_RX,                    // RX UUID - WRITE 사용
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharacteristicRX->setCallbacks(new MyCallbacks());
+  pCharacteristicRX->setCallbacks(new MyCallbacks());             // 수신 데이터 콜백함수
   pService->start();
 
+  // Advertising 하는 부분
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(true);  // When PC Connecting to Device
@@ -101,6 +142,18 @@ void loop() {
   if(millis() - lastTime > interval){
     lastTime = millis();
     Serial.printf("COUNT : %d\r\n", cnt++);
+  }
+  else if(digitalRead(BTN_PIN) == LOW)
+  {
+    Serial.println("Button Pressed"); 
+    while(true) // 버튼 누를 때 완전 멈춤
+    {
+      if(digitalRead(BTN_PIN) == HIGH)
+      {
+        break;
+      }
+    };
+    delay(10);
   }
 
   // 연결된 상태
