@@ -97,7 +97,7 @@ void setup() {
   pinMode(BTN_PIN, INPUT_PULLUP);
 #endif
 
-  BLEDevice::init("Gripper_Test");
+  BLEDevice::init("ESP32C3_BLE_TEST");
 
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());                 // 콜백함수
