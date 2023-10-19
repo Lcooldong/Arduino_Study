@@ -1,16 +1,35 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
-#include <esp_now.h>
+//#include <esp_now.h>
+#include <Wire.h>
 #include "neopixel.h"
 
+//#define M5STAMP_C3
+#define ATOM_LITE
+
 #define INTERVAL 50
+
+#ifdef M5STAMP_C3
 #define SERVO_PIN 1
 #define HALL_SENSOR_PIN 4
+#endif
+#ifdef ATOM_LITE
+#define SERVO_PIN 19
+#define HALL_SENSOR_PIN 33
+#endif
 
 #define SERVO_INITIAL_POS 0
 #define SERVO_TARGET_POS 150
+
+#ifdef ATOM_LITE
+#define HALL_MID_VALUE 2400
+#define HALL_TARGET_VALUE 960
+#endif 
+
+#ifdef M5STAMP_C3
 #define HALL_MID_VALUE 2900
 #define HALL_TARGET_VALUE 1280
+#endif
 
 #define HALL_FAR     0x00
 #define HALL_NEARBY  0x04
@@ -57,7 +76,7 @@ void loop() {
     lastTime = millis();
     
     hallValue = analogRead(HALL_SENSOR_PIN);
-//    Serial.printf("Value : %d\r\n", hallValue);
+    //Serial.printf("Value : %d\r\n", hallValue);
     if (hallValue <= HALL_TARGET_VALUE)
     {
       hallCount++;
@@ -89,7 +108,7 @@ void loop() {
     {
     case 'i':      
       //Serial.write('a');
-      initPacket(&dataToSend);
+      //initPacket(&dataToSend);
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
       //Serial.write(dataToSend);
       break;
@@ -168,7 +187,7 @@ void rotateServo(int targetPos)
             gripperServo.write(i);
             pos = i;
             //Serial.printf("Degree : %d\r\n", i);
-            delay(5);
+            delay(4);
           }  
         }
         else if (pos > targetPos)
@@ -179,7 +198,7 @@ void rotateServo(int targetPos)
             gripperServo.write(i);
             pos = i;
             //Serial.printf("Degree : %d\r\n", i);
-            delay(5);
+            delay(4);
           }    
         }
               
