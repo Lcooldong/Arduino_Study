@@ -130,7 +130,7 @@ void loop() {
         Serial.println("Arrived at Target Height");
       }
     }
-    else
+    else    
     {
       hallCount = 0;
     }
