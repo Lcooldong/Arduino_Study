@@ -9,6 +9,7 @@
 
 #define INTERVAL 50
 
+// PINOUT
 #ifdef M5STAMP_C3
 #define SERVO_PIN 1
 #define HALL_SENSOR_PIN 4
