@@ -10,7 +10,7 @@
 
 #define INTERVAL 50
 
-// PINOUT
+// PINOUT | 6, 10 NOT ADC
 #ifdef M5STAMP_C3
 #define EN_PIN            0 // Enable
 #define DIR_PIN          18  // Direction
@@ -18,13 +18,13 @@
 
 #define SERVO_PIN         1
 #define HALL_SENSOR_PIN   4
-#define OUT_RGB_PIN       5
-//#define FSR_PIN           6
 
-#define COLOR_LED_PIN     6
+#define FSR_PIN           5
+#define OUT_RGB_PIN       6
+
 #define COLOR_SDL_PIN     7
 #define COLOR_SDA_PIN     8
-
+#define COLOR_LED_PIN     10
 
 #endif
 
@@ -106,7 +106,7 @@ void setup() {
   initServo();
   initStepperMotor();
   initTSC3430();
-  SetOutStripColor(0, outStrip->Color(255, 0, 100), 20, 1);
+  SetOutStripColor(0, outStrip->Color(20, 30, 150), 20, 1);
 }
 
 void loop() {
@@ -134,8 +134,9 @@ void loop() {
       hallCount = 0;
       dataToSend.hallState = HALL_FAR;
     }
-    showColorData();
-
+    //showColorData();
+    int fsrData =  analogRead(FSR_PIN);
+    //Serial.printf("FSR : %d\r\n",fsrData);
     //Serial.printf("%d %d | HALL : %d\r\n", dataToSend.servoState, dataToSend.hallState, hallValue);
   }
 
@@ -304,7 +305,7 @@ void showColorData()
   uint16_t IR1Data = TCS3430.getIR1Data();
   uint16_t IR2Data = TCS3430.getIR2Data();
   String str = "X : " + String(XData) + "    Y : " + String(YData) + "    Z : " +  String(ZData) + "    IR1 : "+String(IR1Data) + "    IR2 : "+String(IR2Data);
-  Serial.println(str);
+  //Serial.println(str);
   if(ZData >= 2000)
   {
     ZData = 2000;
@@ -314,7 +315,7 @@ void showColorData()
     ZData = 80;
   }
   int pwmValue = map(ZData, 2000, 80, 0, 100);
-  Serial.println(pwmValue);
+  //Serial.println(pwmValue);
   ledcWrite(COLOR_LED_CHANNEL, pwmValue);
 }
 
