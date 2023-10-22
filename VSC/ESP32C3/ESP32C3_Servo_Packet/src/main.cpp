@@ -90,6 +90,7 @@ DFRobot_TCS3430 TCS3430;
 
 void initPacket(PACKET* _packet);
 bool sendPacket(uint8_t* _data, size_t len);
+void getStatus(int interval);
 void initServo();
 void rotateServo(int targetPos);
 void initStepperMotor();
@@ -110,36 +111,7 @@ void setup() {
 }
 
 void loop() {
-  if(millis() - lastTime > INTERVAL)
-  {
-    lastTime = millis();
-    
-    hallValue = analogRead(HALL_SENSOR_PIN);
-    //Serial.printf("Value : %d\r\n", hallValue);
-    if (hallValue <= HALL_TARGET_VALUE)
-    {
-      hallCount++;
-      if(hallCount > 10)
-      {
-        //Serial.println("Arrived at Target Height");
-        dataToSend.hallState = HALL_ARRIVED;
-      }   
-    }
-    else if(hallValue <= HALL_MID_VALUE)
-    {
-      dataToSend.hallState = HALL_NEARBY;
-    }
-    else    
-    {
-      hallCount = 0;
-      dataToSend.hallState = HALL_FAR;
-    }
-    //showColorData();
-    int fsrData =  analogRead(FSR_PIN);
-    //Serial.printf("FSR : %d\r\n",fsrData);
-    //Serial.printf("%d %d | HALL : %d\r\n", dataToSend.servoState, dataToSend.hallState, hallValue);
-  }
-
+   getStatus(INTERVAL); 
 
   if(Serial.available())
   {
@@ -210,6 +182,39 @@ bool sendPacket(uint8_t* _data, size_t len)
   return true;
 }
 
+void getStatus(int interval)
+{
+  if(millis() - lastTime > interval)
+  {
+    lastTime = millis();
+    
+    hallValue = analogRead(HALL_SENSOR_PIN);
+    //Serial.printf("Value : %d\r\n", hallValue);
+    if (hallValue <= HALL_TARGET_VALUE)
+    {
+      hallCount++;
+      if(hallCount > 10)
+      {
+        //Serial.println("Arrived at Target Height");
+        dataToSend.hallState = HALL_ARRIVED;
+      }   
+    }
+    else if(hallValue <= HALL_MID_VALUE)
+    {
+      dataToSend.hallState = HALL_NEARBY;
+    }
+    else    
+    {
+      hallCount = 0;
+      dataToSend.hallState = HALL_FAR;
+    }
+    //showColorData();
+    int fsrData =  analogRead(FSR_PIN);
+    //Serial.printf("FSR : %d\r\n",fsrData);
+    //Serial.printf("%d %d | HALL : %d\r\n", dataToSend.servoState, dataToSend.hallState, hallValue);
+  }
+
+}
 
 void initServo()
 {
