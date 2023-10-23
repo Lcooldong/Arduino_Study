@@ -7,11 +7,23 @@
 
 #include <iostream>
 using namespace std;
-#define M5STAMP_C3
+//#define M5STAMP_C3
+#define ESP32C3_LCD
 
 #ifdef M5STAMP_C3
   #define BTN_PIN 3
 #endif  
+
+#ifdef ESP32C3_LCD  // -> 버그있음, 또는 보드 문제
+  #include <SPI.h>
+  #include <Wire.h>
+  #include <U8g2lib.h>
+  #define SDA_PIN 5
+  #define SCL_PIN 6
+  #define VOLT_INPUT_PIN 3
+
+  U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); 
+#endif
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristicTX = NULL;
@@ -92,10 +104,23 @@ class MyCallbacks: public BLECharacteristicCallbacks
 void setup() {
   Serial.begin(115200);
   myNeopixel->InitNeopixel();
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 1);
 #ifdef M5STAMP_C3
   pinMode(BTN_PIN, INPUT_PULLUP);
 #endif
+
+#ifdef ESP32C3_LCD
+  Wire.begin(SDA_PIN, SCL_PIN);
+  u8g2.begin();
+
+  u8g2.clearBuffer();
+  u8g2.setFontMode(1);
+  u8g2.setFont(u8g2_font_ncenB08_tr);	// choose a suitable font
+  u8g2.drawStr(0,10,"Hello World!");	// write something to the internal memory
+  u8g2.sendBuffer();
+
+#endif
+
 
   BLEDevice::init("ESP32C3_BLE_TEST");
 
@@ -134,7 +159,7 @@ void setup() {
 
 }
 
-uint32_t lastTime = 0;
+uint64_t lastTime = 0;
 uint16_t interval = 1000;
 
 void loop() {
@@ -142,7 +167,21 @@ void loop() {
   if(millis() - lastTime > interval){
     lastTime = millis();
     Serial.printf("COUNT : %d\r\n", cnt++);
+
   }
+  u8g2.clearBuffer();
+  u8g2.setCursor(0, 10);
+  u8g2.printf("BLE Light");
+  u8g2.setCursor(0, 20);
+  u8g2.printf("Battery : %d", cnt);
+  
+  //int voltData = analogRead(VOLT_INPUT_PIN);
+  //const char* buffer = voltData.c_str();
+  u8g2.sendBuffer();
+  delay(1000);
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 0, 200), 50, 1);
+  
+#ifdef M5STAMP_C3
   else if(digitalRead(BTN_PIN) == LOW)
   {
     Serial.println("Button Pressed"); 
@@ -155,6 +194,7 @@ void loop() {
     };
     delay(10);
   }
+#endif
 
   // 연결된 상태
   if (deviceConnected) {

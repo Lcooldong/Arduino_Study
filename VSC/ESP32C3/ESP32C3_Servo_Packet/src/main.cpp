@@ -7,8 +7,8 @@ void setup() {
   initPacket(&dataToSend);
   initServo();
   initStepperMotor();
-  initTSC3430();
-  SetOutStripColor(0, outStrip->Color(20, 30, 150), 20, 1);
+  //initTSC3430();
+  SetOutStripColor(0, outStrip->Color(255, 0, 0), 50, 1);
 }
 
 void loop() {
@@ -32,6 +32,7 @@ void loop() {
         rotateServo(SERVO_INITIAL_POS);
         dataToSend.servoState = SERVO_OPENED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+        SetOutStripColor(0, outStrip->Color(255, 0, 255), 50, 1);
         delay(100);
       }
       break;
@@ -42,6 +43,7 @@ void loop() {
         rotateServo(SERVO_TARGET_POS);
         dataToSend.servoState = SERVO_CLOSED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+        SetOutStripColor(0, outStrip->Color(0, 0, 255), 50, 1);
         delay(100);
       }
       break;
@@ -109,7 +111,7 @@ void getStatus(int interval)
       hallCount = 0;
       dataToSend.hallState = HALL_FAR;
     }
-    showColorData();
+    //showColorData();    // 연결 전에는 작동 X
     int fsrData =  analogRead(FSR_PIN);
     //Serial.printf("FSR : %d\r\n",fsrData);
     //Serial.printf("%d %d | HALL : %d\r\n", dataToSend.servoState, dataToSend.hallState, hallValue);
