@@ -7,8 +7,8 @@
 
 #include <iostream>
 using namespace std;
-//#define M5STAMP_C3
-#define ESP32C3_LCD
+#define M5STAMP_C3
+//#define ESP32C3_LCD
 
 #ifdef M5STAMP_C3
   #define BTN_PIN 3
@@ -169,18 +169,6 @@ void loop() {
     Serial.printf("COUNT : %d\r\n", cnt++);
 
   }
-  u8g2.clearBuffer();
-  u8g2.setCursor(0, 10);
-  u8g2.printf("BLE Light");
-  u8g2.setCursor(0, 20);
-  u8g2.printf("Battery : %d", cnt);
-  
-  //int voltData = analogRead(VOLT_INPUT_PIN);
-  //const char* buffer = voltData.c_str();
-  u8g2.sendBuffer();
-  delay(1000);
-  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 0, 200), 50, 1);
-  
 #ifdef M5STAMP_C3
   else if(digitalRead(BTN_PIN) == LOW)
   {
@@ -195,6 +183,22 @@ void loop() {
     delay(10);
   }
 #endif
+
+#ifdef ESP32C3_LCD
+  u8g2.clearBuffer();
+  u8g2.setCursor(0, 10);
+  u8g2.printf("BLE Light");
+  u8g2.setCursor(0, 20);
+  u8g2.printf("Battery : %d", cnt);
+  
+  //int voltData = analogRead(VOLT_INPUT_PIN);
+  //const char* buffer = voltData.c_str();
+  u8g2.sendBuffer();
+  delay(1000);
+#endif
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(50, 0, 200), 50, 1);
+
+
 
   // 연결된 상태
   if (deviceConnected) {
