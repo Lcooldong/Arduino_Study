@@ -1,71 +1,5 @@
-<<<<<<< Updated upstream
+
 #include "main.h"
-=======
-#include <Arduino.h>
-#include <ESP32Servo.h>
-//#include <esp_now.h>
-#include <Wire.h>
-#include "neopixel.h"
-
-#define M5STAMP_C3
-//#define ATOM_LITE
-
-#define INTERVAL 50
-
-#ifdef M5STAMP_C3
-#define SERVO_PIN 1
-#define HALL_SENSOR_PIN 4
-#endif
-#ifdef ATOM_LITE
-#define SERVO_PIN 19
-#define HALL_SENSOR_PIN 33
-#endif
-
-#define SERVO_INITIAL_POS 0
-#define SERVO_TARGET_POS 150
-
-#ifdef ATOM_LITE
-#define HALL_MID_VALUE 2400
-#define HALL_TARGET_VALUE 960
-#endif 
-
-#ifdef M5STAMP_C3
-#define HALL_MID_VALUE 2900
-#define HALL_TARGET_VALUE 1280
-#endif
-
-#define HALL_FAR     0x00
-#define HALL_NEARBY  0x04
-#define HALL_ARRIVED 0x05
-#define SERVO_CLOSED 0x06
-#define SERVO_OPENED 0x00
-
-
-typedef struct __attribute__((packed)) packet
-{
-  uint8_t stx;
-  uint8_t servoState;
-  uint8_t hallState;
-  uint8_t etx;
-}PACKET;
-
-PACKET dataToSend = {0,};
-PACKET buf;
-
-long count = 0;
-int hallCount = 0;
-int pos = 0;
-uint64_t lastTime = 0;
-uint16_t hallValue;
-
-MyNeopixel* myNeopixel = new MyNeopixel();
-Servo gripperServo;
-
-void initPacket(PACKET* _packet);
-bool sendPacket(uint8_t* _data, size_t len);
-void initServo();
-void rotateServo(int targetPos);
->>>>>>> Stashed changes
 
 void setup() {
   Serial.begin(115200);
@@ -79,39 +13,7 @@ void setup() {
 }
 
 void loop() {
-<<<<<<< Updated upstream
   getStatus(INTERVAL); 
-=======
-  if(millis() - lastTime > INTERVAL)
-  {
-    lastTime = millis();
-    
-    hallValue = analogRead(HALL_SENSOR_PIN);
-    Serial.printf("Value : %d\r\n", hallValue);
-    if (hallValue <= HALL_TARGET_VALUE)
-    {
-      hallCount++;
-      if(hallCount > 10)
-      {
-        //Serial.println("Arrived at Target Height");
-        dataToSend.hallState = HALL_ARRIVED;
-      }   
-    }
-    else if(hallValue <= HALL_MID_VALUE)
-    {
-      dataToSend.hallState = HALL_NEARBY;
-    }
-    else    
-    {
-      hallCount = 0;
-      dataToSend.hallState = HALL_FAR;
-    }
-    
-
-    //Serial.printf("%d %d | HALL : %d\r\n", dataToSend.servoState, dataToSend.hallState, hallValue);
-  }
-
->>>>>>> Stashed changes
 
   if(Serial.available())
   {
