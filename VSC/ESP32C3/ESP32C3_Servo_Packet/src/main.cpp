@@ -9,7 +9,7 @@ void setup() {
   initServo();
   initStepperMotor();
   //initTSC3430();
-  SetOutStripColor(0, outStrip->Color(255, 0, 0), 50, 1);
+  SetOutStripColor(0, outStrip->Color(255, 0, 0), 1, 1);
 }
 
 void loop() {
@@ -33,7 +33,7 @@ void loop() {
         rotateServo(SERVO_INITIAL_POS);
         dataToSend.servoState = SERVO_OPENED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-        SetOutStripColor(0, outStrip->Color(255, 0, 255), 50, 1);
+        SetOutStripColor(0, outStrip->Color(255, 0, 255), 5, 1);
         delay(100);
       }
       break;
@@ -44,7 +44,7 @@ void loop() {
         rotateServo(SERVO_TARGET_POS);
         dataToSend.servoState = SERVO_CLOSED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-        SetOutStripColor(0, outStrip->Color(0, 0, 255), 50, 1);
+        SetOutStripColor(0, outStrip->Color(0, 0, 255), 5, 1);
         delay(100);
       }
       break;
@@ -138,7 +138,7 @@ void rotateServo(int targetPos)
 
         if(pos < targetPos)
         {
-          myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 50, 50);
+          myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 5, 50);
           for (int i = 0; i <= targetPos; i++)
           {
             gripperServo.write(i);
@@ -149,7 +149,7 @@ void rotateServo(int targetPos)
         }
         else if (pos > targetPos)
         {
-          myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 50);
+          myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 5, 50);
           for (int i = pos; i >= targetPos; i--)
           {
             gripperServo.write(i);
@@ -159,7 +159,7 @@ void rotateServo(int targetPos)
           }
               
         }
-        digitalWrite(SERVO_PIN, LOW);      
+        digitalWrite(SERVO_PIN, LOW);      // 끄기
         //Serial.printf("Servo Rotated\r\n");
       }
 }
