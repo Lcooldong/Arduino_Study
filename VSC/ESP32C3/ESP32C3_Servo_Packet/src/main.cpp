@@ -144,7 +144,7 @@ void rotateServo(int targetPos)
             gripperServo.write(i);
             pos = i;
             //Serial.printf("Degree : %d\r\n", i);
-            delay(5);
+            delay(10);
           }  
         }
         else if (pos > targetPos)
@@ -155,10 +155,11 @@ void rotateServo(int targetPos)
             gripperServo.write(i);
             pos = i;
             //Serial.printf("Degree : %d\r\n", i);
-            delay(5);
-          }    
-        }
+            delay(10);
+          }
               
+        }
+        digitalWrite(SERVO_PIN, LOW);      
         //Serial.printf("Servo Rotated\r\n");
       }
 }
