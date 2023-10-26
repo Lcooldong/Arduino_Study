@@ -1,5 +1,8 @@
 
 #include "main.h"
+#define DEBUG
+#define TCS3430
+
 
 void setup() {
   Serial.begin(115200);
@@ -8,12 +11,23 @@ void setup() {
   initPacket(&dataToSend);
   initServo();
   initStepperMotor();
-  //initTSC3430();
+#ifdef TCS3430
+  initTSC3430();
+#endif
   SetOutStripColor(0, outStrip->Color(255, 0, 0), 1, 1);
 }
 
 void loop() {
   getStatus(INTERVAL); 
+
+  if (millis() - colorSensorLastTime > COLOR_SENSOR_INTERVAL)
+  {
+    colorSensorLastTime = millis();
+#ifdef TCS3430
+    showColorData();    // 연결 전에는 작동 X
+#endif
+
+  }
 
   if(Serial.available())
   {
@@ -93,7 +107,9 @@ void getStatus(int interval)
     lastTime = millis();
     
     hallValue = analogRead(HALL_SENSOR_PIN);
-    //Serial.printf("Value : %d\r\n", hallValue);
+#ifdef DEBUG
+    Serial.printf("Value : %d\r\n", hallValue);
+#endif
     if (hallValue <= HALL_TARGET_VALUE)
     {
       hallCount++;
@@ -112,7 +128,7 @@ void getStatus(int interval)
       hallCount = 0;
       dataToSend.hallState = HALL_FAR;
     }
-    //showColorData();    // 연결 전에는 작동 X
+
     int fsrData =  analogRead(FSR_PIN);
     //Serial.printf("FSR : %d\r\n",fsrData);
     //Serial.printf("%d %d | HALL : %d\r\n", dataToSend.servoState, dataToSend.hallState, hallValue);
@@ -201,7 +217,7 @@ void initTSC3430()
   ledcSetup(COLOR_LED_CHANNEL, 5000, 8);
   ledcAttachPin(COLOR_LED_PIN, COLOR_LED_CHANNEL);
 
-  while(!TCS3430.begin()){
+  while(!tcs3430.begin()){
     Serial.println("Please check that the IIC device is properly connected");
     delay(1000);
   }
@@ -209,23 +225,29 @@ void initTSC3430()
 
 void showColorData()
 {
-  uint16_t XData = TCS3430.getXData();
-  uint16_t YData = TCS3430.getYData();
-  uint16_t ZData = TCS3430.getZData();
-  uint16_t IR1Data = TCS3430.getIR1Data();
-  uint16_t IR2Data = TCS3430.getIR2Data();
-  String str = "X : " + String(XData) + "    Y : " + String(YData) + "    Z : " +  String(ZData) + "    IR1 : "+String(IR1Data) + "    IR2 : "+String(IR2Data);
+  //uint16_t XData = tcs3430.getXData();
+  uint16_t YData = tcs3430.getYData();
+  //uint16_t ZData = tcs3430.getZData();
+ // uint16_t IR1Data = tcs3430.getIR1Data();
+  //uint16_t IR2Data = tcs3430.getIR2Data();
+
+#ifdef DEBUG
+//  Serial.printf("Value : %d\r\n", hallValue);
+
+  //String str = "X : " + String(XData) + "    Y : " + String(YData) + "    Z : " +  String(ZData) + "    IR1 : "+String(IR1Data) + "    IR2 : "+String(IR2Data);
   //Serial.println(str);
-  if(ZData >= 1800)
+#endif
+
+  if(YData >= COLOR_Y_MAX_VALUE)
   {
-    ZData = 1800;
+    YData = COLOR_Y_MAX_VALUE;
   }
-  else if(ZData <= 80)
+  else if(YData <= COLOR_Y_MIN_VALUE)
   {
-    ZData = 80;
+    YData = COLOR_Y_MIN_VALUE;
   }
-  int pwmValue = map(ZData, 1800, 80, 0, 100);
-//  Serial.println(pwmValue);
+  int pwmValue = map(YData, COLOR_Y_MAX_VALUE, COLOR_Y_MIN_VALUE, 0, 255);
+  Serial.println(pwmValue);
   ledcWrite(COLOR_LED_CHANNEL, pwmValue);
 }
 
