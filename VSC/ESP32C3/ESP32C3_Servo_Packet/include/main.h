@@ -8,6 +8,7 @@
 //#define ATOM_LITE
 
 #define INTERVAL 50
+#define COLOR_SENSOR_INTERVAL 10
 
 // PINOUT | 6, 10 NOT ADC
 #ifdef M5STAMP_C3
@@ -42,10 +43,12 @@
 
 #ifdef M5STAMP_C3
 #define COLOR_LED_CHANNEL 0
+#define COLOR_Y_MAX_VALUE 800
+#define COLOR_Y_MIN_VALUE 250
 #define SERVO_INITIAL_POS 0
-#define SERVO_TARGET_POS 150
+#define SERVO_TARGET_POS 130
 #define HALL_MID_VALUE 2900
-#define HALL_TARGET_VALUE 1280
+#define HALL_TARGET_VALUE 1305
 #define STEPS 1600        // Full Range 10000
 #define STEP_DELAY 100
 #define INIT_STEP_TIMEOUT 3000
@@ -80,12 +83,13 @@ long count = 0;
 int hallCount = 0;
 int pos = 0;
 uint64_t lastTime = 0;
+uint64_t colorSensorLastTime = 0;
 uint16_t hallValue;
 
 Adafruit_NeoPixel* outStrip = new Adafruit_NeoPixel(LED_COUNT, OUT_RGB_PIN, NEO_GRB + NEO_KHZ800);
 MyNeopixel* myNeopixel = new MyNeopixel();
 Servo gripperServo;
-DFRobot_TCS3430 TCS3430;
+DFRobot_TCS3430 tcs3430;
 
 void initPacket(PACKET* _packet);
 bool sendPacket(uint8_t* _data, size_t len);
