@@ -247,7 +247,7 @@ void showColorData()
     YData = COLOR_Y_MIN_VALUE;
   }
   int pwmValue = map(YData, COLOR_Y_MAX_VALUE, COLOR_Y_MIN_VALUE, 0, 255);
-  Serial.println(pwmValue);
+  //Serial.println(pwmValue);
   ledcWrite(COLOR_LED_CHANNEL, pwmValue);
 }
 

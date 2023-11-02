@@ -1,19 +1,21 @@
 #include <Arduino.h>
-#include <Servo.h>
+//#include <Servo.h>
+#define ESP32_SERVO
 
-<<<<<<< Updated upstream
+#ifdef ESP32_SERVO
+#include <ESP32Servo.h>
+#endif
+
 //#define FULL_DEGREE
 
-=======
 #include <SPI.h>
 #include <Wire.h>
 #include <WiFi.h>
->>>>>>> Stashed changes
+
 
 #define LIMIT_SENSOR_PIN 4
 #define SERVO_PIN 23
 #define BTN_PIN 39
-
 
 Servo myservo;
 
@@ -23,15 +25,34 @@ void setup() {
   Serial.begin(115200);
   pinMode(LIMIT_SENSOR_PIN, INPUT_PULLUP);
   pinMode(BTN_PIN, INPUT_PULLUP);
-  myservo.attach(SERVO_PIN);
+//  myservo.attach(SERVO_PIN, -1, 0, 180, 1000, 2000, 50);
+#ifdef ESP32_SERVO
+  myservo.setPeriodHertz(50);
+  myservo.attach(SERVO_PIN, 1000, 2000);
+#endif
 
 }
 
 void loop() {
-<<<<<<< Updated upstream
+
+  if(Serial.available()){
+    char text = Serial.read();
+    switch (text)
+    {
+    case 'u':
+      pos += 1;
+      break;
+    case 'd':
+      pos -= 1;
+      break;
+    
+    default:
+      myservo.write(pos);
+      break;
+    }
+  }
 
 #ifdef FULL_DEGREE
-=======
   if(digitalRead(BTN_PIN))
   {
     myservo.write(90);
@@ -43,7 +64,7 @@ void loop() {
     delay(100);
   }
   
->>>>>>> Stashed changes
+
   if(!digitalRead(LIMIT_SENSOR_PIN)) // Pressed -> 0,  Release -> 1
   {
     myservo.write(90);  // Stop
@@ -62,7 +83,6 @@ void loop() {
     
   // }
 #endif
-myservo.write(90);
 
 
 // for (pos = 0; pos < 120; pos++)
