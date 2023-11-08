@@ -8,7 +8,7 @@
 //#define ATOM_LITE
 
 #define INTERVAL 50
-#define COLOR_SENSOR_INTERVAL 10
+#define COLOR_SENSOR_INTERVAL 50
 
 // PINOUT | 6, 10 NOT ADC
 #ifdef M5STAMP_C3
@@ -17,6 +17,7 @@
 #define STEP_PIN         19  // Step
 
 #define SERVO_PIN         1
+#define SERVO_PIN2        5
 #define HALL_SENSOR_PIN   4
 
 #define FSR_PIN           5
@@ -43,8 +44,8 @@
 
 #ifdef M5STAMP_C3
 #define COLOR_LED_CHANNEL 0
-#define COLOR_Y_MAX_VALUE 800
-#define COLOR_Y_MIN_VALUE 250
+#define COLOR_Y_MAX_VALUE 700
+#define COLOR_Y_MIN_VALUE 300
 #define SERVO_INITIAL_POS 0
 #define SERVO_TARGET_POS 130
 #define HALL_MID_VALUE 2900
@@ -59,6 +60,8 @@
 #define HALL_ARRIVED 0x05
 #define SERVO_CLOSED 0x06
 #define SERVO_OPENED 0x00
+#define COLOR_ON     0x07
+#define COLOR_OFF    0x00
 
 enum StepperDirection
 {
@@ -73,6 +76,7 @@ typedef struct __attribute__((packed)) packet
   uint8_t stx;
   uint8_t servoState;
   uint8_t hallState;
+  uint8_t colorState;
   uint8_t etx;
 }PACKET;
 
@@ -84,11 +88,13 @@ int hallCount = 0;
 int pos = 0;
 uint64_t lastTime = 0;
 uint64_t colorSensorLastTime = 0;
+bool colorSensorFlash = false;
 uint16_t hallValue;
 
 Adafruit_NeoPixel* outStrip = new Adafruit_NeoPixel(LED_COUNT, OUT_RGB_PIN, NEO_GRB + NEO_KHZ800);
 MyNeopixel* myNeopixel = new MyNeopixel();
 Servo gripperServo;
+Servo buttonServo;
 DFRobot_TCS3430 tcs3430;
 
 void initPacket(PACKET* _packet);

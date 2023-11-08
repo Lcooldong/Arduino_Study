@@ -6,6 +6,8 @@
 #include <ESP32Servo.h>
 #endif
 
+
+
 //#define FULL_DEGREE
 
 #include <SPI.h>
@@ -14,7 +16,7 @@
 
 
 #define LIMIT_SENSOR_PIN 4
-#define SERVO_PIN 23
+#define SERVO_PIN 8
 #define BTN_PIN 39
 
 Servo myservo;

@@ -15,6 +15,7 @@ void setup() {
   initTSC3430();
 #endif
   SetOutStripColor(0, outStrip->Color(255, 0, 0), 1, 1);
+  ledcWrite(COLOR_LED_CHANNEL, 0);
 }
 
 void loop() {
@@ -23,8 +24,18 @@ void loop() {
   if (millis() - colorSensorLastTime > COLOR_SENSOR_INTERVAL)
   {
     colorSensorLastTime = millis();
+    //showColorData();  // Test
 #ifdef TCS3430
-    showColorData();    // 연결 전에는 작동 X
+    if(colorSensorFlash)
+    {
+      showColorData();    // 연결 전에는 작동 X
+    dataToSend.colorState = COLOR_ON;
+    }
+    else
+    {
+      ledcWrite(COLOR_LED_CHANNEL, 0);
+    dataToSend.colorState = COLOR_OFF;
+    }
 #endif
 
   }
@@ -63,12 +74,23 @@ void loop() {
       }
       break;
 
-    case 'f':
+    case '1':
       moveStepperMotor(STEPS, FORWARD, STEP_DELAY);
       break;
 
-    case 'b':
+    case '2':
       moveStepperMotor(STEPS, BACKWARD, STEP_DELAY);
+      break;
+
+    case 'n':
+      colorSensorFlash = true;
+      break;
+    case 'f':
+      colorSensorFlash = false;
+      break;
+    case 'a':
+      break;
+    case 'b':
       break;
 
     default:
@@ -108,7 +130,7 @@ void getStatus(int interval)
     
     hallValue = analogRead(HALL_SENSOR_PIN);
 #ifdef DEBUG
-    Serial.printf("Value : %d\r\n", hallValue);
+    //Serial.printf("Value : %d\r\n", hallValue);
 #endif
     if (hallValue <= HALL_TARGET_VALUE)
     {
@@ -129,7 +151,7 @@ void getStatus(int interval)
       dataToSend.hallState = HALL_FAR;
     }
 
-    int fsrData =  analogRead(FSR_PIN);
+    //int fsrData =  analogRead(FSR_PIN);
     //Serial.printf("FSR : %d\r\n",fsrData);
     //Serial.printf("%d %d | HALL : %d\r\n", dataToSend.servoState, dataToSend.hallState, hallValue);
   }
@@ -144,7 +166,17 @@ void initServo()
     gripperServo.attach(SERVO_PIN, 1000, 2000);
   }
   gripperServo.write(0);
+
+
+  if(!buttonServo.attached())
+  {
+   buttonServo.setPeriodHertz(50);
+   buttonServo.attach(SERVO_PIN2, 1000, 2000);
+  }
+  buttonServo.write(0);
 }
+
+
 
 void rotateServo(int targetPos)
 {
@@ -232,7 +264,7 @@ void showColorData()
   //uint16_t IR2Data = tcs3430.getIR2Data();
 
 #ifdef DEBUG
-//  Serial.printf("Value : %d\r\n", hallValue);
+  //Serial.printf("Y Value : %d\r\n", YData);
 
   //String str = "X : " + String(XData) + "    Y : " + String(YData) + "    Z : " +  String(ZData) + "    IR1 : "+String(IR1Data) + "    IR2 : "+String(IR2Data);
   //Serial.println(str);
