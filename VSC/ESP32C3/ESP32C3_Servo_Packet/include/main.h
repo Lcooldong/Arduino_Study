@@ -17,7 +17,7 @@
 #define STEP_PIN         19  // Step
 
 #define SERVO_PIN         1
-#define SERVO_PIN2        5
+#define SERVO_PIN2        18
 #define HALL_SENSOR_PIN   4
 
 #define FSR_PIN           5
@@ -77,6 +77,7 @@ typedef struct __attribute__((packed)) packet
   uint8_t servoState;
   uint8_t hallState;
   uint8_t colorState;
+  uint8_t buttonState;
   uint8_t etx;
 }PACKET;
 
@@ -101,7 +102,7 @@ void initPacket(PACKET* _packet);
 bool sendPacket(uint8_t* _data, size_t len);
 void getStatus(int interval);
 void initServo();
-void rotateServo(int targetPos);
+void rotateServo(Servo *_servo , int targetPos, uint32_t millisecond);
 void initStepperMotor();
 void moveStepperMotor(int step, bool dir, int stepDelay);
 void SetOutStripColor(uint8_t ledNum, uint32_t color, uint8_t brightness, int wait);

@@ -15,9 +15,9 @@
 #include <WiFi.h>
 
 
-#define LIMIT_SENSOR_PIN 4
-#define SERVO_PIN 8
-#define BTN_PIN 39
+//#define LIMIT_SENSOR_PIN 4
+#define SERVO_PIN 19
+//#define BTN_PIN 39
 
 Servo myservo;
 
@@ -25,12 +25,13 @@ int pos = 0;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(LIMIT_SENSOR_PIN, INPUT_PULLUP);
-  pinMode(BTN_PIN, INPUT_PULLUP);
+//  pinMode(LIMIT_SENSOR_PIN, INPUT_PULLUP);
+//  pinMode(BTN_PIN, INPUT_PULLUP);
 //  myservo.attach(SERVO_PIN, -1, 0, 180, 1000, 2000, 50);
 #ifdef ESP32_SERVO
   myservo.setPeriodHertz(50);
-  myservo.attach(SERVO_PIN, 1000, 2000);
+  myservo.attach(SERVO_PIN, 500, 2400);
+  myservo.write(0);
 #endif
 
 }
@@ -43,13 +44,20 @@ void loop() {
     {
     case 'u':
       pos += 1;
+      Serial.println(pos);
+      myservo.write(pos);
+      delay(5);
       break;
     case 'd':
       pos -= 1;
+      Serial.println(pos);
+      myservo.write(pos);
+      delay(5);
       break;
     
     default:
-      myservo.write(pos);
+      
+      
       break;
     }
   }

@@ -1,7 +1,9 @@
 
 #include "main.h"
 #define DEBUG
-#define TCS3430
+//#define TCS3430
+// #define STEPPER_MOTOR
+
 
 
 void setup() {
@@ -10,7 +12,11 @@ void setup() {
   outStrip->begin();
   initPacket(&dataToSend);
   initServo();
+
+
+#ifdef STEPPER_MOTOR
   initStepperMotor();
+#endif
 #ifdef TCS3430
   initTSC3430();
 #endif
@@ -19,7 +25,7 @@ void setup() {
 }
 
 void loop() {
-  getStatus(INTERVAL); 
+  getStatus(INTERVAL);
 
   if (millis() - colorSensorLastTime > COLOR_SENSOR_INTERVAL)
   {
@@ -55,7 +61,7 @@ void loop() {
     case 'o':
       if(dataToSend.hallState == HALL_ARRIVED)
       {
-        rotateServo(SERVO_INITIAL_POS);
+        rotateServo(&gripperServo, SERVO_INITIAL_POS, 10);
         dataToSend.servoState = SERVO_OPENED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
         SetOutStripColor(0, outStrip->Color(255, 0, 255), 5, 1);
@@ -66,7 +72,7 @@ void loop() {
     case 'c':
       if(dataToSend.hallState == HALL_ARRIVED)
       {
-        rotateServo(SERVO_TARGET_POS);
+        rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
         dataToSend.servoState = SERVO_CLOSED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
         SetOutStripColor(0, outStrip->Color(0, 0, 255), 5, 1);
@@ -75,11 +81,15 @@ void loop() {
       break;
 
     case '1':
+#ifdef STEPPER_MOTOR
       moveStepperMotor(STEPS, FORWARD, STEP_DELAY);
+#endif
       break;
 
     case '2':
+#ifdef STEPPER_MOTOR
       moveStepperMotor(STEPS, BACKWARD, STEP_DELAY);
+#endif
       break;
 
     case 'n':
@@ -89,8 +99,21 @@ void loop() {
       colorSensorFlash = false;
       break;
     case 'a':
+      //rotateServo(&buttonServo, 0, 5);
+      //buttonServo.write(0);
+      Serial.println("Servo a");
+      //buttonServo.attach(SERVO_PIN2, 500, 2400);
+      rotateServo(&buttonServo, 0, 5);
+
+      //buttonServo.write(0);
       break;
     case 'b':
+      //rotateServo(&buttonServo, 180, 5);
+      Serial.println("Servo b");
+      //buttonServo.write(30);
+      //buttonServo.attach(SERVO_PIN2, 500, 2400);
+      rotateServo(&buttonServo, 35, 5);
+
       break;
 
     default:
@@ -167,18 +190,19 @@ void initServo()
   }
   gripperServo.write(0);
 
-
+ // buttonServo.setPeriodHertz(50);
+ // buttonServo.attach(SERVO_PIN2, 500, 2400);
   if(!buttonServo.attached())
   {
    buttonServo.setPeriodHertz(50);
-   buttonServo.attach(SERVO_PIN2, 1000, 2000);
+   buttonServo.attach(SERVO_PIN2, 500, 2400);
   }
   buttonServo.write(0);
 }
 
 
 
-void rotateServo(int targetPos)
+void rotateServo(Servo *_servo, int targetPos, uint32_t millisecond)
 {
       if (pos != targetPos)
       {
@@ -189,10 +213,11 @@ void rotateServo(int targetPos)
           myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 0), 5, 50);
           for (int i = 0; i <= targetPos; i++)
           {
-            gripperServo.write(i);
+            //gripperServo.write(i);
+            _servo->write(i);
             pos = i;
             //Serial.printf("Degree : %d\r\n", i);
-            delay(10);
+            delay(millisecond);
           }  
         }
         else if (pos > targetPos)
@@ -200,15 +225,17 @@ void rotateServo(int targetPos)
           myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 5, 50);
           for (int i = pos; i >= targetPos; i--)
           {
-            gripperServo.write(i);
+            //gripperServo.write(i);
+            _servo->write(i);
             pos = i;
             //Serial.printf("Degree : %d\r\n", i);
-            delay(10);
+            delay(millisecond);
           }
               
         }
         digitalWrite(SERVO_PIN, LOW);      // 끄기
         //Serial.printf("Servo Rotated\r\n");
+        //_servo->detach();
       }
 }
 
@@ -238,7 +265,7 @@ void moveStepperMotor(int step, bool dir, int stepDelay)
 void SetOutStripColor(uint8_t ledNum, uint32_t color, uint8_t brightness, int wait)
 {
     outStrip->setBrightness(brightness);
-    outStrip->setPixelColor(ledNum, color);  
+    outStrip->setPixelColor(ledNum, color);
     outStrip->show();                                               
     delay(wait);
 }
