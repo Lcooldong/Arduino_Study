@@ -3,6 +3,7 @@
 #include <DFRobot_TCS3430.h>
 #include <Wire.h>
 #include "neopixel.h"
+#include <WiFi.h>
 
 #define M5STAMP_C3
 //#define ATOM_LITE
@@ -55,13 +56,15 @@
 #define INIT_STEP_TIMEOUT 3000
 #endif
 
-#define HALL_FAR     0x00
-#define HALL_NEARBY  0x04
-#define HALL_ARRIVED 0x05
-#define SERVO_CLOSED 0x06
-#define SERVO_OPENED 0x00
-#define COLOR_ON     0x07
-#define COLOR_OFF    0x00
+#define HALL_FAR      0x00
+#define HALL_NEARBY   0x04
+#define HALL_ARRIVED  0x05
+#define SERVO_CLOSED  0x06
+#define SERVO_OPENED  0x00
+#define COLOR_ON      0x07
+#define COLOR_OFF     0x00
+#define SERVO_RELEASE 0x00
+#define SERVO_PUSH    0x08
 
 enum StepperDirection
 {
@@ -86,7 +89,8 @@ PACKET buf;
 
 long count = 0;
 int hallCount = 0;
-int pos = 0;
+int gripperPos = 0;
+int buttonPos = 0;
 uint64_t lastTime = 0;
 uint64_t colorSensorLastTime = 0;
 bool colorSensorFlash = false;
@@ -102,7 +106,7 @@ void initPacket(PACKET* _packet);
 bool sendPacket(uint8_t* _data, size_t len);
 void getStatus(int interval);
 void initServo();
-void rotateServo(Servo *_servo , int targetPos, uint32_t millisecond);
+void rotateServo(Servo *_servo, int targetPos, uint32_t millisecond);
 void initStepperMotor();
 void moveStepperMotor(int step, bool dir, int stepDelay);
 void SetOutStripColor(uint8_t ledNum, uint32_t color, uint8_t brightness, int wait);
