@@ -1,7 +1,7 @@
 
 #include "main.h"
 //#define DEBUG
-//#define TCS3430
+#define TCS3430
 // #define STEPPER_MOTOR
 
 
@@ -195,7 +195,7 @@ void initServo()
   if(!gripperServo.attached())
   {
     gripperServo.setPeriodHertz(50);
-    gripperServo.attach(SERVO_PIN, 1000, 2000);
+    gripperServo.attach(SERVO_PIN, 500, 2400);
   }
 
   

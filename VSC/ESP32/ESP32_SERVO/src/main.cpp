@@ -16,7 +16,7 @@
 
 
 //#define LIMIT_SENSOR_PIN 4
-#define SERVO_PIN 19
+#define SERVO_PIN 1
 //#define BTN_PIN 39
 
 Servo myservo;
