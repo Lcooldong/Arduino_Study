@@ -68,7 +68,7 @@ void setup() {
     USBSerial.println(mySPIFFS->pass);
     M5.update();
 
-    WiFi.mode(WIFI_AP_STA);
+    WiFi.mode(WIFI_STA);
     WiFi.begin(mySPIFFS->ssid, mySPIFFS->pass);
     USBSerial.println("Connect to Flash Memory");
     M5.update();
