@@ -23,6 +23,7 @@
 
 #define FSR_PIN           5
 #define OUT_RGB_PIN       6
+#define EXTRA_LED_PIN     0
 
 #define COLOR_SDL_PIN     7
 #define COLOR_SDA_PIN     8
@@ -95,8 +96,10 @@ uint64_t lastTime = 0;
 uint64_t colorSensorLastTime = 0;
 bool colorSensorFlash = false;
 uint16_t hallValue;
+uint8_t brightnessTestValue = 0;
 
 Adafruit_NeoPixel* outStrip = new Adafruit_NeoPixel(LED_COUNT, OUT_RGB_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel* extraLED = new Adafruit_NeoPixel(2, EXTRA_LED_PIN, NEO_GRB + NEO_KHZ800);
 MyNeopixel* myNeopixel = new MyNeopixel();
 Servo gripperServo;
 Servo buttonServo;
@@ -109,6 +112,6 @@ void initServo();
 void rotateServo(Servo *_servo, int targetPos, uint32_t millisecond);
 void initStepperMotor();
 void moveStepperMotor(int step, bool dir, int stepDelay);
-void SetOutStripColor(uint8_t ledNum, uint32_t color, uint8_t brightness, int wait);
+void SetOutStripColor(Adafruit_NeoPixel* targetStrip ,uint8_t ledNum, uint32_t color, uint8_t brightness, int wait);
 void initTSC3430();
 void showColorData();

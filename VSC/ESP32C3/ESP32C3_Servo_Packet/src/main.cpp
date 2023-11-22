@@ -10,8 +10,12 @@ void setup() {
   Serial.begin(115200);
   myNeopixel->InitNeopixel();
   outStrip->begin();
+  extraLED->begin();
   initPacket(&dataToSend);
   initServo();
+  myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 255), 50, 1);
+  SetOutStripColor(extraLED ,0, extraLED->Color(0, 0, 0), 0, 1);
+  SetOutStripColor(extraLED ,1, extraLED->Color(0, 0, 0), 0, 1);
 
 
 #ifdef STEPPER_MOTOR
@@ -20,7 +24,7 @@ void setup() {
 #ifdef TCS3430
   initTSC3430();
 #endif
-  SetOutStripColor(0, outStrip->Color(255, 0, 0), 1, 1);
+  SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 0), 1, 1);
   ledcWrite(COLOR_LED_CHANNEL, 0);
 }
 
@@ -67,7 +71,7 @@ void loop() {
         gripperServo.detach();
         dataToSend.servoState = SERVO_OPENED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-        SetOutStripColor(0, outStrip->Color(255, 0, 255), 5, 1);
+        SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
         delay(100);
       }
       break;
@@ -80,7 +84,7 @@ void loop() {
         gripperServo.detach();
         dataToSend.servoState = SERVO_CLOSED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-        SetOutStripColor(0, outStrip->Color(0, 0, 255), 5, 1);
+        SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
         delay(100);
       }
       break;
@@ -88,13 +92,17 @@ void loop() {
     case '1':
 #ifdef STEPPER_MOTOR
       moveStepperMotor(STEPS, FORWARD, STEP_DELAY);
-#endif
+#endif      
+      SetOutStripColor(extraLED ,0, extraLED->Color(255, 255, 255), ++brightnessTestValue, 1);
+      Serial.printf("Brightness : %d\r\n",brightnessTestValue);
       break;
 
     case '2':
 #ifdef STEPPER_MOTOR
       moveStepperMotor(STEPS, BACKWARD, STEP_DELAY);
 #endif
+      SetOutStripColor(extraLED ,0, extraLED->Color(255, 255, 255), --brightnessTestValue, 1);
+      Serial.printf("Brightness : %d\r\n",brightnessTestValue);
       break;
 
     case 'n':
@@ -114,7 +122,7 @@ void loop() {
       dataToSend.buttonState = SERVO_RELEASE;
       buttonServo.detach();
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-      SetOutStripColor(0, outStrip->Color(100, 0, 255), 5, 1);
+      SetOutStripColor(outStrip, 0, outStrip->Color(100, 0, 255), 5, 1);
       break;
 
     case 'b':
@@ -122,7 +130,7 @@ void loop() {
       rotateServo(&buttonServo, 30, 10);
       dataToSend.buttonState = SERVO_PUSH;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-      SetOutStripColor(0, outStrip->Color(100, 100, 50), 5, 1);
+      SetOutStripColor(outStrip, 0, outStrip->Color(100, 100, 50), 5, 1);
       break;
 
     default:
@@ -306,11 +314,11 @@ void moveStepperMotor(int step, bool dir, int stepDelay)
   digitalWrite(EN_PIN, HIGH);
 }
 
-void SetOutStripColor(uint8_t ledNum, uint32_t color, uint8_t brightness, int wait)
+void SetOutStripColor(Adafruit_NeoPixel* targetStrip ,uint8_t ledNum, uint32_t color, uint8_t brightness, int wait)
 {
-    outStrip->setBrightness(brightness);
-    outStrip->setPixelColor(ledNum, color);
-    outStrip->show();                                               
+    targetStrip->setBrightness(brightness);
+    targetStrip->setPixelColor(ledNum, color);
+    targetStrip->show();                                               
     delay(wait);
 }
 
@@ -350,7 +358,10 @@ void showColorData()
     YData = COLOR_Y_MIN_VALUE;
   }
   int pwmValue = map(YData, COLOR_Y_MAX_VALUE, COLOR_Y_MIN_VALUE, 0, 255);
+  int neopixelValue = map(pwmValue, 0, 255, 0, 150);
   //Serial.println(pwmValue);
   ledcWrite(COLOR_LED_CHANNEL, pwmValue);
+  SetOutStripColor(extraLED, 0, extraLED->Color(255, 255, 255), neopixelValue, 1);
+  SetOutStripColor(extraLED, 1, extraLED->Color(255, 255, 255), neopixelValue, 1);
 }
 
