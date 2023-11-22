@@ -75,10 +75,10 @@ void setup() {
   }
   else
   {
-    const char* ssid        = "Cooldong";
-    const char* password    = "8ec4hkx000";
-    WiFi.begin(ssid, password);
-    USBSerial.println("Connect to HOME");
+    //const char* ssid        = "Cooldong";
+    //const char* password    = "8ec4hkx000";
+    //WiFi.begin(ssid, password);
+    USBSerial.println("Saved file doesn't exist => Move to WiFiManager");
     M5.update();
   }
 

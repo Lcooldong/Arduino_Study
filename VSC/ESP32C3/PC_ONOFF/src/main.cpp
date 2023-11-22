@@ -118,9 +118,10 @@ void setup(){
   }
   else
   {
-    const char* ssid = "Cooldong";
-    const char* password = "8ec4hkx000";
-    WiFi.begin(ssid, password);
+    //const char* ssid = "Cooldong";
+    //const char* password = "8ec4hkx000";
+    //WiFi.begin(ssid, password);
+    Serial.println("Saved file doesn't exist => Move to WiFiManager");
   }
   
 
