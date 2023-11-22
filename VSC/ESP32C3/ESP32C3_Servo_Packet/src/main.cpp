@@ -66,9 +66,10 @@ void loop() {
       if(dataToSend.hallState == HALL_ARRIVED)
       {
         
-        gripperServo.attach(SERVO_PIN, 1000, 2000);
-        rotateServo(&gripperServo, SERVO_INITIAL_POS, 10);
+        gripperServo.attach(SERVO_PIN, 500, 2400);
+        rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
         gripperServo.detach();
+        //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
         dataToSend.servoState = SERVO_OPENED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
         SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
@@ -79,9 +80,10 @@ void loop() {
     case 'c':
       if(dataToSend.hallState == HALL_ARRIVED)
       {
-        gripperServo.attach(SERVO_PIN, 1000, 2000);
+        gripperServo.attach(SERVO_PIN, 500, 2400);
         rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
         gripperServo.detach();
+        //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
         dataToSend.servoState = SERVO_CLOSED;
         sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
         SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
