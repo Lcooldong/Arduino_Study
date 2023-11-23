@@ -1,7 +1,7 @@
 
 #include "main.h"
 //#define DEBUG
-#define TCS3430
+//#define TCS3430
 // #define STEPPER_MOTOR
 
 
@@ -30,9 +30,12 @@ void setup() {
 
 void loop() {
   getStatus(INTERVAL);
+
+  bool touchValue = digitalRead(TOUCH_PIN);
   //Serial.printf("Touch : %d\r\n", digitalRead(TOUCH_PIN));
-  if (digitalRead(TOUCH_PIN))
+  if (touchValue != lastTouchValue)
   {
+    
     if (touchToggleFlag)
     {
       if(!buttonServo.attached())
@@ -58,7 +61,10 @@ void loop() {
       SetOutStripColor(outStrip, 0, outStrip->Color(100, 0, 255), 5, 1);
       delay(1000);
     }
-    touchToggleFlag = !touchToggleFlag;    
+
+    touchToggleFlag = !touchToggleFlag;
+    lastTouchValue = touchValue;
+    //Serial.println("State Changed : Touch");
   }
  
 

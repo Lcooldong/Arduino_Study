@@ -98,6 +98,7 @@ bool colorSensorFlash = false;
 uint16_t hallValue;
 uint8_t brightnessTestValue = 0;
 bool touchToggleFlag = false;
+bool lastTouchValue = false;
 
 Adafruit_NeoPixel* outStrip = new Adafruit_NeoPixel(LED_COUNT, OUT_RGB_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel* extraLED = new Adafruit_NeoPixel(2, EXTRA_LED_PIN, NEO_GRB + NEO_KHZ800);
