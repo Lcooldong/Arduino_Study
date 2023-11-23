@@ -16,7 +16,7 @@ void setup() {
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 255), 50, 1);
   SetOutStripColor(extraLED ,0, extraLED->Color(0, 0, 0), 0, 1);
   SetOutStripColor(extraLED ,1, extraLED->Color(0, 0, 0), 0, 1);
-
+  pinMode(TOUCH_PIN, INPUT_PULLUP);
 
 #ifdef STEPPER_MOTOR
   initStepperMotor();
@@ -30,6 +30,37 @@ void setup() {
 
 void loop() {
   getStatus(INTERVAL);
+  //Serial.printf("Touch : %d\r\n", digitalRead(TOUCH_PIN));
+  if (digitalRead(TOUCH_PIN))
+  {
+    if (touchToggleFlag)
+    {
+      if(!buttonServo.attached())
+      {
+        buttonServo.attach(SERVO_PIN2, 500, 2400);
+      }
+      rotateServo(&buttonServo, 30, 10);
+      dataToSend.buttonState = SERVO_PUSH;
+      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+      SetOutStripColor(outStrip, 0, outStrip->Color(100, 100, 50), 5, 1);
+      delay(1000);
+    }
+    else
+    {
+      if(!buttonServo.attached())
+      {
+        buttonServo.attach(SERVO_PIN2, 500, 2400);
+      }
+      rotateServo(&buttonServo, 0, 10);
+      dataToSend.buttonState = SERVO_RELEASE;
+      buttonServo.detach();
+      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+      SetOutStripColor(outStrip, 0, outStrip->Color(100, 0, 255), 5, 1);
+      delay(1000);
+    }
+    touchToggleFlag = !touchToggleFlag;    
+  }
+ 
 
   if (millis() - colorSensorLastTime > COLOR_SENSOR_INTERVAL)
   {
@@ -64,8 +95,7 @@ void loop() {
 
     case 'o':
       if(dataToSend.hallState == HALL_ARRIVED)
-      {
-        
+      {        
         gripperServo.attach(SERVO_PIN, 500, 2400);
         rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
         gripperServo.detach();
@@ -128,7 +158,10 @@ void loop() {
       break;
 
     case 'b':
-      buttonServo.attach(SERVO_PIN2, 500, 2400);
+      if(!buttonServo.attached())
+      {
+        buttonServo.attach(SERVO_PIN2, 500, 2400);
+      }
       rotateServo(&buttonServo, 30, 10);
       dataToSend.buttonState = SERVO_PUSH;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
