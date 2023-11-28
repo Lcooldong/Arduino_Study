@@ -33,7 +33,9 @@ void loop() {
 
   bool touchValue = digitalRead(TOUCH_PIN);
   //Serial.printf("Touch : %d\r\n", digitalRead(TOUCH_PIN));
-  if (touchValue != lastTouchValue)
+  
+  //if (touchValue != lastTouchValue) // Toggle Switch ( On Off )
+  if (touchValue == 1)  // Push Button Switch
   {
     
     if (touchToggleFlag)
@@ -63,7 +65,8 @@ void loop() {
     }
 
     touchToggleFlag = !touchToggleFlag;
-    lastTouchValue = touchValue;
+    // lastTouchValue = touchValue; // Toggle Switch
+    while(digitalRead(TOUCH_PIN));
     //Serial.println("State Changed : Touch");
   }
  
