@@ -57,7 +57,7 @@ void loop() {
       {
         openServo();
       }
-      delay(100);
+      delay(1000);
     };
     //Serial.println("State Changed : Touch");
   }
