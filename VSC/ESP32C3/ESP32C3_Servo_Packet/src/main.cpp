@@ -35,40 +35,33 @@ void loop() {
   //Serial.printf("Touch : %d\r\n", digitalRead(TOUCH_PIN));
   
   //if (touchValue != lastTouchValue) // Toggle Switch ( On Off )
-  if (touchValue == 1)  // Push Button Switch
-  {
-    
+  if (touchValue == 0 )  // Push Button Switch, Pull-UP
+  {    
     if (touchToggleFlag)
     {
-      if(!buttonServo.attached())
-      {
-        buttonServo.attach(SERVO_PIN2, 500, 2400);
-      }
-      rotateServo(&buttonServo, 30, 10);
-      dataToSend.buttonState = SERVO_PUSH;
-      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-      SetOutStripColor(outStrip, 0, outStrip->Color(100, 100, 50), 5, 1);
-      delay(1000);
+      upButtonServo();
+      //delay(1000);
     }
     else
     {
-      if(!buttonServo.attached())
-      {
-        buttonServo.attach(SERVO_PIN2, 500, 2400);
-      }
-      rotateServo(&buttonServo, 0, 10);
-      dataToSend.buttonState = SERVO_RELEASE;
-      buttonServo.detach();
-      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-      SetOutStripColor(outStrip, 0, outStrip->Color(100, 0, 255), 5, 1);
-      delay(1000);
+      downButtonServo();
+      //delay(1000);
     }
 
     touchToggleFlag = !touchToggleFlag;
-    // lastTouchValue = touchValue; // Toggle Switch
-    while(digitalRead(TOUCH_PIN));
+    //lastTouchValue = touchValue; // Toggle Switch
+    int openCount = 0;
+    while(touchValue == digitalRead(TOUCH_PIN))
+    {
+      if(openCount++ > 5)
+      {
+        openServo();
+      }
+      delay(100);
+    };
     //Serial.println("State Changed : Touch");
   }
+  //delay(100);
  
 
   if (millis() - colorSensorLastTime > COLOR_SENSOR_INTERVAL)
@@ -103,31 +96,33 @@ void loop() {
       break;
 
     case 'o':
-      if(dataToSend.hallState == HALL_ARRIVED)
-      {        
-        gripperServo.attach(SERVO_PIN, 500, 2400);
-        rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
-        gripperServo.detach();
-        //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
-        dataToSend.servoState = SERVO_OPENED;
-        sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-        SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
-        delay(100);
-      }
+      openServo();
+      // if(dataToSend.hallState == HALL_ARRIVED)
+      // {        
+      //   gripperServo.attach(SERVO_PIN, 500, 2400);
+      //   rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
+      //   gripperServo.detach();
+      //   //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
+      //   dataToSend.servoState = SERVO_OPENED;
+      //   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+      //   SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
+      //   delay(100);
+      // }
       break;
 
     case 'c':
-      if(dataToSend.hallState == HALL_ARRIVED)
-      {
-        gripperServo.attach(SERVO_PIN, 500, 2400);
-        rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
-        gripperServo.detach();
-        //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
-        dataToSend.servoState = SERVO_CLOSED;
-        sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-        SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
-        delay(100);
-      }
+      closeServo();
+      // if(dataToSend.hallState == HALL_ARRIVED)
+      // {
+      //   gripperServo.attach(SERVO_PIN, 500, 2400);
+      //   rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
+      //   gripperServo.detach();
+      //   //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
+      //   dataToSend.servoState = SERVO_CLOSED;
+      //   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+      //   SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
+      //   delay(100);
+      // }
       break;
 
     case '1':
@@ -155,26 +150,11 @@ void loop() {
       break;
 
     case 'a':
-      if(!buttonServo.attached())
-      {
-        buttonServo.attach(SERVO_PIN2, 500, 2400);
-      }
-      rotateServo(&buttonServo, 0, 10);
-      dataToSend.buttonState = SERVO_RELEASE;
-      buttonServo.detach();
-      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-      SetOutStripColor(outStrip, 0, outStrip->Color(100, 0, 255), 5, 1);
+      upButtonServo();
       break;
 
     case 'b':
-      if(!buttonServo.attached())
-      {
-        buttonServo.attach(SERVO_PIN2, 500, 2400);
-      }
-      rotateServo(&buttonServo, 30, 10);
-      dataToSend.buttonState = SERVO_PUSH;
-      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-      SetOutStripColor(outStrip, 0, outStrip->Color(100, 100, 50), 5, 1);
+      downButtonServo();
       break;
 
     default:
@@ -268,6 +248,7 @@ void initServo()
   gripperServo.write(0);
   delay(500);
   buttonServo.write(0);
+  delay(500);
   //Serial.println("Init Gripper");
 }
 
@@ -358,6 +339,62 @@ void moveStepperMotor(int step, bool dir, int stepDelay)
   digitalWrite(EN_PIN, HIGH);
 }
 
+void openServo()
+{
+  if(dataToSend.hallState == HALL_ARRIVED)
+  {        
+    gripperServo.attach(SERVO_PIN, 500, 2400);
+    rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
+    gripperServo.detach();
+    //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
+    dataToSend.servoState = SERVO_OPENED;
+    sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+    SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
+    delay(100);
+  }
+}
+
+void closeServo()
+{
+  if(dataToSend.hallState == HALL_ARRIVED)
+  {
+    gripperServo.attach(SERVO_PIN, 500, 2400);
+    rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
+    gripperServo.detach();
+    //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
+    dataToSend.servoState = SERVO_CLOSED;
+    sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+    SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
+    delay(100);
+  }
+}
+
+void upButtonServo()
+{
+  if(!buttonServo.attached())
+  {
+    buttonServo.attach(SERVO_PIN2, 500, 2400);
+  }
+  rotateServo(&buttonServo, 0, 10);
+  dataToSend.buttonState = SERVO_RELEASE;
+  //buttonServo.detach();
+  sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+  SetOutStripColor(outStrip, 0, outStrip->Color(100, 0, 255), 5, 1);
+}
+
+void downButtonServo()
+{
+  if(!buttonServo.attached())
+  {
+    buttonServo.attach(SERVO_PIN2, 500, 2400);
+  }
+  rotateServo(&buttonServo, 30, 10);
+  dataToSend.buttonState = SERVO_PUSH;
+  sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+  SetOutStripColor(outStrip, 0, outStrip->Color(100, 100, 50), 5, 1);
+}
+
+
 void SetOutStripColor(Adafruit_NeoPixel* targetStrip ,uint8_t ledNum, uint32_t color, uint8_t brightness, int wait)
 {
     targetStrip->setBrightness(brightness);
@@ -402,7 +439,7 @@ void showColorData()
     YData = COLOR_Y_MIN_VALUE;
   }
   int pwmValue = map(YData, COLOR_Y_MAX_VALUE, COLOR_Y_MIN_VALUE, 0, 255);
-  int neopixelValue = map(pwmValue, 0, 255, 0, 150);
+  int neopixelValue = map(pwmValue, 0, 255, 0, 250);
   //Serial.println(pwmValue);
   ledcWrite(COLOR_LED_CHANNEL, pwmValue);
   SetOutStripColor(extraLED, 0, extraLED->Color(255, 255, 255), neopixelValue, 1);
