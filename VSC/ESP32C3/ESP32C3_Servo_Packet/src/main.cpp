@@ -349,10 +349,10 @@ void closeServo()
 
 void upButtonServo()
 {
-  if(!buttonServo.attached())
-  {
-    buttonServo.attach(SERVO_PIN2, 500, 2400);
-  }
+  // if(!buttonServo.attached())
+  // {
+  //   buttonServo.attach(SERVO_PIN2, 500, 2400);
+  // }
   rotateServo(&buttonServo, 0, 10);
   dataToSend.buttonState = SERVO_RELEASE;
   //buttonServo.detach();
@@ -362,10 +362,10 @@ void upButtonServo()
 
 void downButtonServo()
 {
-  if(!buttonServo.attached())
-  {
-    buttonServo.attach(SERVO_PIN2, 500, 2400);
-  }
+  // if(!buttonServo.attached())
+  // {
+  //   buttonServo.attach(SERVO_PIN2, 500, 2400);
+  // }
   rotateServo(&buttonServo, 30, 10);
   dataToSend.buttonState = SERVO_PUSH;
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
