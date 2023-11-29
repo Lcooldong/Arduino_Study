@@ -223,8 +223,8 @@ void initServo()
   
   //rotateServo(&buttonServo, 0, 10);
   //Serial.println("Init Button");
-  gripperServo.write(0);
-  delay(500);
+  //gripperServo.write(0);
+  //delay(500);
   buttonServo.write(0);
   delay(500);
   //Serial.println("Init Gripper");
