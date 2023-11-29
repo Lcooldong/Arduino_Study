@@ -1,7 +1,7 @@
 
 #include "main.h"
 //#define DEBUG
-//#define TCS3430
+#define TCS3430
 // #define STEPPER_MOTOR
 
 
