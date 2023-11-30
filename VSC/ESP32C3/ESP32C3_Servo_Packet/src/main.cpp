@@ -1,7 +1,7 @@
 
 #include "main.h"
 //#define DEBUG
-#define TCS3430
+//#define TCS3430
 // #define STEPPER_MOTOR
 
 
@@ -33,19 +33,22 @@ void loop() {
 
   bool touchValue = digitalRead(TOUCH_PIN);
   //Serial.printf("Touch : %d\r\n", digitalRead(TOUCH_PIN));
-  
+  upButtonServo();
+  delay(1000);
+  downButtonServo();
+  delay(1000);
   //if (touchValue != lastTouchValue) // Toggle Switch ( On Off )
   if (touchValue == 0 )  // Push Button Switch, Pull-UP
   {    
     if (touchToggleFlag)
     {
       upButtonServo();
-      //delay(1000);
+      delay(1000);
     }
     else
     {
       downButtonServo();
-      //delay(1000);
+      delay(1000);
     }
 
     touchToggleFlag = !touchToggleFlag;
