@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <WiFi.h>
+//#include <WiFi.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <AsyncTCP.h>
@@ -7,6 +7,7 @@
 #include <WebSerial.h>
 #include <ESPAsyncWiFiManager.h>
 #include <AsyncElegantOTA.h>
+//#include <ElegantOTA.h>
 #include "MyLittleFS.h"
 #include <U8g2lib.h>
 
@@ -45,6 +46,9 @@ void recvMsg(uint8_t *data, size_t len){
   //   digitalWrite(LED, LOW);
   // }
 }
+
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -154,12 +158,13 @@ int cnt = 0;
 
 void loop() {
   ArduinoOTA.handle();
+  
   if(millis() - lastTime > 2000)
   {
     lastTime = millis();
     cnt++;
 
-    String text = "Hello!!";
+    String text = "Hello!!-;^;";
 
     WebSerial.printf("%d : %s\r\n", cnt, text);
     Serial.printf("%d : %s\r\n", cnt, text);
