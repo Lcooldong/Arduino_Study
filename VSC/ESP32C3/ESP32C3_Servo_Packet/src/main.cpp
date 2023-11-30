@@ -1,7 +1,7 @@
 
 #include "main.h"
 //#define DEBUG
-#define TCS3430
+//#define TCS3430
 // #define STEPPER_MOTOR
 #define TEST_BUTTON
 
@@ -250,8 +250,10 @@ void initServo()
   //Serial.println("Init Button");
   //gripperServo.write(0);
   //delay(500);
-  buttonServo.write(0);
+  buttonServo.write(10);
   delay(500);
+  buttonServo.detach();
+  
   //Serial.println("Init Gripper");
 }
 
@@ -374,24 +376,24 @@ void closeServo()
 
 void upButtonServo()
 {
-  // if(!buttonServo.attached())
-  // {
-  //   buttonServo.attach(SERVO_PIN2, 500, 2400);
-  // }
+  if(!buttonServo.attached())
+  {
+    buttonServo.attach(SERVO_PIN2, 500, 2400);
+  }
   //buttonServo.attach(SERVO_PIN2, 500, 2400);
-  rotateServo(&buttonServo, 0, 5);
+  rotateServo(&buttonServo, 10, 5);
   dataToSend.buttonState = SERVO_RELEASE;
-  //buttonServo.detach();
+  buttonServo.detach();
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
   SetOutStripColor(outStrip, 0, outStrip->Color(100, 0, 255), 5, 1);
 }
 
 void downButtonServo()
 {
-  // if(!buttonServo.attached())
-  // {
-  //   buttonServo.attach(SERVO_PIN2, 500, 2400);
-  // }
+  if(!buttonServo.attached())
+  {
+    buttonServo.attach(SERVO_PIN2, 500, 2400);
+  }
   //buttonServo.attach(SERVO_PIN2, 500, 2400);
   rotateServo(&buttonServo, 30, 2);
   dataToSend.buttonState = SERVO_PUSH;

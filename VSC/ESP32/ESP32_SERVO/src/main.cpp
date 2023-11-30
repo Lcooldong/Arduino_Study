@@ -16,7 +16,7 @@
 
 
 //#define LIMIT_SENSOR_PIN 4
-#define SERVO_PIN 1
+#define SERVO_PIN 18
 //#define BTN_PIN 39
 
 Servo myservo;
@@ -46,13 +46,13 @@ void loop() {
       pos += 1;
       Serial.println(pos);
       myservo.write(pos);
-      delay(5);
+      delay(3);
       break;
     case 'd':
       pos -= 1;
       Serial.println(pos);
       myservo.write(pos);
-      delay(5);
+      delay(3);
       break;
     
     default:
