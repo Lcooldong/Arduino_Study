@@ -1,9 +1,9 @@
 
 #include "main.h"
 //#define DEBUG
-//#define TCS3430
+#define TCS3430
 // #define STEPPER_MOTOR
-
+#define TEST_BUTTON
 
 
 void setup() {
@@ -33,39 +33,59 @@ void loop() {
 
   bool touchValue = digitalRead(TOUCH_PIN);
   //Serial.printf("Touch : %d\r\n", digitalRead(TOUCH_PIN));
-  upButtonServo();
-  delay(1000);
-  downButtonServo();
-  delay(1000);
+
+#ifdef TEST_BUTTON  
   //if (touchValue != lastTouchValue) // Toggle Switch ( On Off )
   if (touchValue == 0 )  // Push Button Switch, Pull-UP
   {    
-    if (touchToggleFlag)
-    {
-      upButtonServo();
-      delay(1000);
-    }
-    else
-    {
-      downButtonServo();
-      delay(1000);
-    }
+    
 
-    touchToggleFlag = !touchToggleFlag;
+    
     //lastTouchValue = touchValue; // Toggle Switch
     int openCount = 0;
     while(touchValue == digitalRead(TOUCH_PIN))
     {
-      if(openCount++ > 5)
+      if(openCount++ > 3)
       {
-        openServo();
+        if(servoToggleFlag)
+        {
+          closeServo();
+        }
+        else
+        {
+          openServo();
+        }
+        servoToggleFlag = !servoToggleFlag;
+        pressingtouchButton = true;
+      }
+      else
+      {
+        pressingtouchButton = false;
+        Serial.println("Out Pressing");
       }
       delay(1000);
     };
     //Serial.println("State Changed : Touch");
+
+    if (touchToggleFlag && !pressingtouchButton)
+    {
+      upButtonServo();
+      //Serial.println("UP");
+      delay(1000);
+    }
+    else if(!touchToggleFlag && !pressingtouchButton)
+    {
+      downButtonServo();
+      //Serial.println("DOWN");
+      delay(1000);
+    }
+    touchToggleFlag = !touchToggleFlag;
   }
-  //delay(100);
- 
+  delay(100);
+
+  
+
+#endif 
 
   if (millis() - colorSensorLastTime > COLOR_SENSOR_INTERVAL)
   {
@@ -356,6 +376,7 @@ void upButtonServo()
   // {
   //   buttonServo.attach(SERVO_PIN2, 500, 2400);
   // }
+  //buttonServo.attach(SERVO_PIN2, 500, 2400);
   rotateServo(&buttonServo, 0, 10);
   dataToSend.buttonState = SERVO_RELEASE;
   //buttonServo.detach();
@@ -369,6 +390,7 @@ void downButtonServo()
   // {
   //   buttonServo.attach(SERVO_PIN2, 500, 2400);
   // }
+  //buttonServo.attach(SERVO_PIN2, 500, 2400);
   rotateServo(&buttonServo, 30, 10);
   dataToSend.buttonState = SERVO_PUSH;
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
