@@ -38,14 +38,11 @@ void loop() {
   //if (touchValue != lastTouchValue) // Toggle Switch ( On Off )
   if (touchValue == 0 )  // Push Button Switch, Pull-UP
   {    
-    
-
-    
     //lastTouchValue = touchValue; // Toggle Switch
-    int openCount = 0;
+    int openCloseCount = 0;
     while(touchValue == digitalRead(TOUCH_PIN))
-    {
-      if(openCount++ > 3)
+    {     
+      if(openCloseCount++ > 5)
       {
         if(servoToggleFlag)
         {
@@ -57,31 +54,36 @@ void loop() {
         }
         servoToggleFlag = !servoToggleFlag;
         pressingtouchButton = true;
+        Serial.println("Out Pressing");
+        break;
       }
       else
       {
         pressingtouchButton = false;
-        Serial.println("Out Pressing");
+        Serial.println("While Pressing");
+        delay(500);
       }
-      delay(1000);
     };
     //Serial.println("State Changed : Touch");
 
-    if (touchToggleFlag && !pressingtouchButton)
+    if (!pressingtouchButton)
     {
-      upButtonServo();
-      //Serial.println("UP");
-      delay(1000);
-    }
-    else if(!touchToggleFlag && !pressingtouchButton)
-    {
-      downButtonServo();
-      //Serial.println("DOWN");
-      delay(1000);
-    }
-    touchToggleFlag = !touchToggleFlag;
+      if (touchToggleFlag)
+      {
+        upButtonServo();
+        //Serial.println("UP");
+        delay(500);
+      }
+      else if(!touchToggleFlag)
+      {
+        downButtonServo();
+        //Serial.println("DOWN");
+        delay(500);
+      }
+      touchToggleFlag = !touchToggleFlag;
+    }    
   }
-  delay(100);
+  //delay(100);
 
   
 
@@ -377,7 +379,7 @@ void upButtonServo()
   //   buttonServo.attach(SERVO_PIN2, 500, 2400);
   // }
   //buttonServo.attach(SERVO_PIN2, 500, 2400);
-  rotateServo(&buttonServo, 0, 10);
+  rotateServo(&buttonServo, 0, 5);
   dataToSend.buttonState = SERVO_RELEASE;
   //buttonServo.detach();
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
@@ -391,7 +393,7 @@ void downButtonServo()
   //   buttonServo.attach(SERVO_PIN2, 500, 2400);
   // }
   //buttonServo.attach(SERVO_PIN2, 500, 2400);
-  rotateServo(&buttonServo, 30, 10);
+  rotateServo(&buttonServo, 30, 2);
   dataToSend.buttonState = SERVO_PUSH;
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
   SetOutStripColor(outStrip, 0, outStrip->Color(100, 100, 50), 5, 1);
