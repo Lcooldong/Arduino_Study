@@ -1,7 +1,7 @@
 
 #include "main.h"
 //#define DEBUG
-//#define TCS3430
+#define TCS3430
 // #define STEPPER_MOTOR
 #define TEST_BUTTON
 
@@ -38,7 +38,7 @@ void loop() {
   //if (touchValue != lastTouchValue) // Toggle Switch ( On Off )
   if (touchValue == 0 )  // Push Button Switch, Pull-UP
   {    
-    //lastTouchValue = touchValue; // Toggle Switch
+    lastTouchValue = touchValue; // Toggle Switch
     int openCloseCount = 0;
     while(touchValue == digitalRead(TOUCH_PIN))
     {     
@@ -46,23 +46,32 @@ void loop() {
       {
         if(servoToggleFlag)
         {
-          closeServo();
+          closeServo(false);
+         
         }
         else
         {
-          openServo();
+          openServo(false);         
         }
         servoToggleFlag = !servoToggleFlag;
         pressingtouchButton = true;
-        Serial.println("Out Pressing");
+        //Serial.println("Out Pressing");
+        while(lastTouchValue == digitalRead(TOUCH_PIN))
+        {
+          delay(100);
+          //Serial.println("IN WHile");
+        }
+        
         break;
       }
       else
       {
         pressingtouchButton = false;
-        Serial.println("While Pressing");
-        delay(500);
+        //Serial.println("While Pressing");
+        delay(100);
       }
+
+      
     };
     //Serial.println("State Changed : Touch");
 
@@ -72,13 +81,13 @@ void loop() {
       {
         upButtonServo();
         //Serial.println("UP");
-        delay(500);
+        delay(100);
       }
       else if(!touchToggleFlag)
       {
         downButtonServo();
         //Serial.println("DOWN");
-        delay(500);
+        delay(100);
       }
       touchToggleFlag = !touchToggleFlag;
     }    
@@ -97,12 +106,16 @@ void loop() {
     if(colorSensorFlash)
     {
       showColorData();    // 연결 전에는 작동 X
-    dataToSend.colorState = COLOR_ON;
+      dataToSend.colorState = COLOR_ON;
     }
     else
     {
       ledcWrite(COLOR_LED_CHANNEL, 0);
-    dataToSend.colorState = COLOR_OFF;
+      for(int i = 0; i < 5; i++)
+      {
+        SetOutStripColor(extraLED, i, extraLED->Color(0, 0, 0), 0, 1);
+      }
+      dataToSend.colorState = COLOR_OFF;
     }
 #endif
 
@@ -121,11 +134,11 @@ void loop() {
       break;
 
     case 'o':
-      openServo();
+      openServo(true);
       break;
 
     case 'c':
-      closeServo();
+      closeServo(true);
       break;
 
     case '1':
@@ -344,33 +357,61 @@ void moveStepperMotor(int step, bool dir, int stepDelay)
   digitalWrite(EN_PIN, HIGH);
 }
 
-void openServo()
+void openServo(bool hallSensor)
 {
-  if(dataToSend.hallState == HALL_ARRIVED)
-  {        
-    gripperServo.attach(SERVO_PIN, 500, 2400);
-    rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
-    gripperServo.detach();
-    //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
-    dataToSend.servoState = SERVO_OPENED;
-    sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-    SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
-    delay(100);
+  if(hallSensor)
+  {
+    if(dataToSend.hallState == HALL_ARRIVED)
+    {        
+      gripperServo.attach(SERVO_PIN, 500, 2400);
+      rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
+      gripperServo.detach();
+      //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
+      dataToSend.servoState = SERVO_OPENED;
+      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+      SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
+      delay(100);
+    }
+  }
+  else
+  {
+      gripperServo.attach(SERVO_PIN, 500, 2400);
+      rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
+      gripperServo.detach();
+      //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
+      dataToSend.servoState = SERVO_OPENED;
+      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+      SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
+      delay(100);
   }
 }
 
-void closeServo()
+void closeServo(bool hallSensor)
 {
-  if(dataToSend.hallState == HALL_ARRIVED)
+  if(hallSensor)
   {
-    gripperServo.attach(SERVO_PIN, 500, 2400);
-    rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
-    gripperServo.detach();
-    //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
-    dataToSend.servoState = SERVO_CLOSED;
-    sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
-    SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
-    delay(100);
+     if(dataToSend.hallState == HALL_ARRIVED)
+    {
+      gripperServo.attach(SERVO_PIN, 500, 2400);
+      rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
+      gripperServo.detach();
+      //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
+      dataToSend.servoState = SERVO_CLOSED;
+      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+      SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
+      delay(100);
+    }
+  }
+  else
+  {
+      gripperServo.attach(SERVO_PIN, 500, 2400);
+      rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
+      gripperServo.detach();
+      //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
+      dataToSend.servoState = SERVO_CLOSED;
+      sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
+      SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
+      delay(100);
   }
 }
 
@@ -390,11 +431,11 @@ void upButtonServo()
 
 void downButtonServo()
 {
-  if(!buttonServo.attached())
-  {
-    buttonServo.attach(SERVO_PIN2, 500, 2400);
-  }
-  //buttonServo.attach(SERVO_PIN2, 500, 2400);
+  // if(!buttonServo.attached())
+  // {
+  //   buttonServo.attach(SERVO_PIN2, 500, 2400);
+  // }
+  buttonServo.attach(SERVO_PIN2, 500, 2400);
   rotateServo(&buttonServo, 30, 2);
   dataToSend.buttonState = SERVO_PUSH;
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
@@ -448,8 +489,12 @@ void showColorData()
   int pwmValue = map(YData, COLOR_Y_MAX_VALUE, COLOR_Y_MIN_VALUE, 0, 255);
   int neopixelValue = map(pwmValue, 0, 255, 0, 250);
   //Serial.println(pwmValue);
-  ledcWrite(COLOR_LED_CHANNEL, pwmValue);
-  SetOutStripColor(extraLED, 0, extraLED->Color(255, 255, 255), neopixelValue, 1);
-  SetOutStripColor(extraLED, 1, extraLED->Color(255, 255, 255), neopixelValue, 1);
+  //ledcWrite(COLOR_LED_CHANNEL, pwmValue);
+  for(int i = 0; i < 5; i++)
+  {
+    SetOutStripColor(extraLED, i, extraLED->Color(255, 255, 255), neopixelValue, 1);
+  }
+  // SetOutStripColor(extraLED, 0, extraLED->Color(255, 255, 255), neopixelValue, 1);
+  // SetOutStripColor(extraLED, 1, extraLED->Color(255, 255, 255), neopixelValue, 1);
 }
 
