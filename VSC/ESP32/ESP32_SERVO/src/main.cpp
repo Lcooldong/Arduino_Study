@@ -31,7 +31,7 @@ void setup() {
 #ifdef ESP32_SERVO
   myservo.setPeriodHertz(50);
   myservo.attach(SERVO_PIN, 500, 2400);
-  myservo.write(0);
+  myservo.write(10);
 #endif
 
 }
