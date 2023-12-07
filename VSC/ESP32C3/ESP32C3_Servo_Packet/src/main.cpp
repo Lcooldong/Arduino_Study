@@ -249,7 +249,7 @@ void initServo()
   
   //rotateServo(&gripperServo, 0, 15);
   
-
+ delay(500);
  // buttonServo.setPeriodHertz(50);
  // buttonServo.attach(SERVO_PIN2, 500, 2400);
   if(!buttonServo.attached())
@@ -263,9 +263,9 @@ void initServo()
   //Serial.println("Init Button");
   //gripperServo.write(0);
   //delay(500);
-  buttonServo.write(30);
-  delay(500);
-  buttonServo.detach();
+  //buttonServo.write(30);
+  
+  //buttonServo.detach();
   
   //Serial.println("Init Gripper");
 }
@@ -422,7 +422,7 @@ void upButtonServo()
     buttonServo.attach(SERVO_PIN2, 500, 2400);
   }
   //buttonServo.attach(SERVO_PIN2, 500, 2400);
-  rotateServo(&buttonServo, 30, 5);
+  rotateServo(&buttonServo, SERVO2_INITIAL_POS, 5);
   dataToSend.buttonState = SERVO_RELEASE;
   buttonServo.detach();
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
@@ -436,7 +436,7 @@ void downButtonServo()
   //   buttonServo.attach(SERVO_PIN2, 500, 2400);
   // }
   buttonServo.attach(SERVO_PIN2, 500, 2400);
-  rotateServo(&buttonServo, 60, 2);
+  rotateServo(&buttonServo, SERVO2_TARGET_POS, 2);
   dataToSend.buttonState = SERVO_PUSH;
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
   SetOutStripColor(outStrip, 0, outStrip->Color(100, 100, 50), 5, 1);

@@ -13,7 +13,7 @@
 #ifdef XIAO
 #define HALL_SENSOR_PIN 4   // GPIO4 = D2 (A2)
 #define LED_PIN         5   // GPIO5 = D3 (A3)
-#define HALL_SENSOR_CUTOFF 1600
+#define HALL_SENSOR_CUTOFF 1700
 #endif
 
 #define HALL_SENSOR_INTERVAL 100
