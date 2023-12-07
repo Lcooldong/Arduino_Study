@@ -363,9 +363,9 @@ void openServo(bool hallSensor)
   {
     if(dataToSend.hallState == HALL_ARRIVED)
     {        
-      gripperServo.attach(SERVO_PIN, 500, 2400);
+//      gripperServo.attach(SERVO_PIN, 500, 2400);
       rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
-      gripperServo.detach();
+//      gripperServo.detach();
       //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
       dataToSend.servoState = SERVO_OPENED;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
@@ -375,9 +375,9 @@ void openServo(bool hallSensor)
   }
   else
   {
-      gripperServo.attach(SERVO_PIN, 500, 2400);
+//      gripperServo.attach(SERVO_PIN, 500, 2400);
       rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
-      gripperServo.detach();
+ //     gripperServo.detach();
       //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
       dataToSend.servoState = SERVO_OPENED;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
@@ -392,9 +392,9 @@ void closeServo(bool hallSensor)
   {
      if(dataToSend.hallState == HALL_ARRIVED)
     {
-      gripperServo.attach(SERVO_PIN, 500, 2400);
+//      gripperServo.attach(SERVO_PIN, 500, 2400);
       rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
-      gripperServo.detach();
+ //     gripperServo.detach();
       //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
       dataToSend.servoState = SERVO_CLOSED;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
@@ -404,9 +404,9 @@ void closeServo(bool hallSensor)
   }
   else
   {
-      gripperServo.attach(SERVO_PIN, 500, 2400);
+//      gripperServo.attach(SERVO_PIN, 500, 2400);
       rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
-      gripperServo.detach();
+//      gripperServo.detach();
       //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
       dataToSend.servoState = SERVO_CLOSED;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
@@ -424,7 +424,7 @@ void upButtonServo()
   //buttonServo.attach(SERVO_PIN2, 500, 2400);
   rotateServo(&buttonServo, SERVO2_INITIAL_POS, 5);
   dataToSend.buttonState = SERVO_RELEASE;
-  buttonServo.detach();
+//  buttonServo.detach();
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
   SetOutStripColor(outStrip, 0, outStrip->Color(100, 0, 255), 5, 1);
 }
