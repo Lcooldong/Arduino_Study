@@ -15,6 +15,8 @@
 #include <ArduinoOTA.h>
 #include "MyLittleFS.h"
 
+
+#define FIXED_IP
 #define WIFI_CONNECTION_INTERVAL 10000
 
 void setUpWiFi();

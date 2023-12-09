@@ -48,10 +48,12 @@ void setUpWiFi()
   {
 //    Serial.println(mySPIFFS->ssid);
 //    Serial.println(mySPIFFS->pass);
+#ifdef FIXED_IP
     IPAddress ip (192, 168, 1, 48);
     IPAddress gateway (192, 168, 1, 1);
     IPAddress subnet(255, 255, 255, 0);
     WiFi.config(ip, gateway, subnet);
+#endif
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(mySPIFFS->ssid, mySPIFFS->pass);
