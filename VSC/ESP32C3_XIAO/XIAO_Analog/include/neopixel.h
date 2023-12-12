@@ -5,7 +5,7 @@
 #include "Adafruit_NeoPixel.h"
 
 #define LED_COUNT 1
-#define LED_PIN 2
+#define LED_PIN 14
 
 class MyNeopixel{
 
