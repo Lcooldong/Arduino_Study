@@ -85,6 +85,12 @@ typedef struct _packet
 #pragma pack(pop)
 
 
+typedef enum
+{
+  HEARTBEAT = 0,
+  
+};
+
 extern PACKET serialData;
 extern PACKET incomingReadings;
 extern esp_now_peer_info_t slave;

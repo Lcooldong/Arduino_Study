@@ -2,6 +2,8 @@
 
 const char* apName = "AP_1";
 
+
+
 void setup() {
   Serial.begin(115200);
   myNeopixel->InitNeopixel();
@@ -44,7 +46,15 @@ void loop() {
   }
 
 #ifdef MASTER
-  
+  if(Serial.available())
+  {
+    Serial.readBytes((char*)&serialData, sizeof(serialData));
+    if(serialData.status == 1)
+    {
+
+    }
+    delay(1);
+  }
   sendData();
 #endif
 
