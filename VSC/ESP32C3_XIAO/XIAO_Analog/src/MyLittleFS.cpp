@@ -291,7 +291,7 @@ bool MyLittleFS::loadConfig(fs::FS &fs)
     // strcpy(ssid, ssidTemp.c_str());
     // passTemp.toCharArray(pass, 32);
     //strcpy(pass, passTemp.c_str());
-    Serial.printf( "SSID : %s | PASS : %s\n" ,ssid, pass);
+    Serial.printf( "SSID : %s | PASS : %s\r\n" ,ssid, pass);
 
     return true;
 }
