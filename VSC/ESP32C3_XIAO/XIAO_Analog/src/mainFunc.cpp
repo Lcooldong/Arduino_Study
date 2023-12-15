@@ -22,8 +22,13 @@ MyLittleFS* mySPIFFS = new MyLittleFS();
 MyNeopixel* myNeopixel = new MyNeopixel();
 
 U8X8_SSD1306_128X64_NONAME_SW_I2C u8x8(/* clock=*/ SCL_PIN, /* data=*/ SDA_PIN, /* reset=*/ U8X8_PIN_NONE);
+//U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ U8X8_PIN_NONE); 
+//extern U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8;
 
-
+extern IPAddress ip;
+extern IPAddress gateway;
+extern IPAddress subnet;
+extern const char* apName;
 
 void initOLED(const uint8_t* _font)
 {
@@ -31,6 +36,7 @@ void initOLED(const uint8_t* _font)
   u8x8.setPowerSave(0);  
   u8x8.setFont(_font);
   u8x8.setInverseFont(0);
+  u8x8.clearDisplay();
 }
 
 int32_t getWiFiChannel(char *ssid)
@@ -107,9 +113,14 @@ void setUpWiFi()
 
       if (millis() - connectionLastTime > WIFI_CONNECTION_INTERVAL)
       {
+        
+        String WiFiManagerName = "WiFiManager_" + (String)apName;
+        myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 1);
+        u8x8.setCursor(0, 0);
+        u8x8.printf("Start WiFiManager_ESP32\r\n");
         Serial.println("Start WiFiManager => 192.168.4.1");
         wifiManager.resetSettings();
-        bool wmRes = wifiManager.autoConnect("WiFiManager_ESP32");
+        bool wmRes = wifiManager.autoConnect(WiFiManagerName.c_str());
         if(!wmRes)
         {
           Serial.println("Failed to connect");
@@ -129,14 +140,23 @@ void setUpWiFi()
   }
   Serial.print("\nIP : ");
   Serial.print(WiFi.localIP());
-  Serial.print(" => Channel : ");
+  Serial.print("\nGateway : ");
+  Serial.print(WiFi.gatewayIP());
+  Serial.print("\nSubnet  : ");
+  Serial.print(WiFi.subnetMask());
+  Serial.println();
+  Serial.print(" Channel : ");
   Serial.println(WiFi.channel());
 
 // OLED
   u8x8.setCursor(0, 0);
-  u8x8.print("IP:");
-  u8x8.setCursor(3, 0);
   u8x8.print(WiFi.localIP());
+  u8x8.setCursor(0, 1);
+  u8x8.print(WiFi.gatewayIP());
+  u8x8.setCursor(0, 2);
+  u8x8.print(WiFi.subnetMask());
+  u8x8.setCursor(0, 3);
+  u8x8.printf("Channel : %d\r\n", channel);
 
 }
 

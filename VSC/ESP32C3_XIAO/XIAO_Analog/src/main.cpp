@@ -20,8 +20,6 @@ IPAddress subnet(255, 255, 255, 0);
 //#define MASTER
 //#define ESPNOW
 
-bool triggerFlag = false;
-
 void setup() {
   Serial.begin(115200);
   initOLED(u8x8_font_chroma48medium8_r);
@@ -85,18 +83,22 @@ void loop() {
   }
 
 
-
+  
   if(count == 10)
   {
     digitalWrite(LED, HIGH);
     myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 100), 50, 1);
-    WebSerial.println("Light On ~ !!");
+    WebSerial.println("Light On\r\n");
+    u8x8.setCursor(0, 4);
+    u8x8.printf("Light On\r\n");
   }
   else if (count == 0)
   {
     digitalWrite(LED, LOW);
     myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 0), 0, 1);
-    //WebSerial.println("Light Off");
+    WebSerial.println("Light Off\r\n");
+    u8x8.setCursor(0, 4);
+    u8x8.printf("Light Off\r\n");
   }
 
 

@@ -34,7 +34,7 @@
 #define LOLIN32
 //#define D1_MINI
 //#define ESP32Dev
-#define FIXED_IP
+//#define FIXED_IP
 
 #ifdef M5STAMP
 #define HALL_SENSOR_PIN 7
@@ -120,10 +120,8 @@ extern DNSServer dns;
 extern MyLittleFS* mySPIFFS;
 extern MyNeopixel* myNeopixel;
 extern U8X8_SSD1306_128X64_NONAME_SW_I2C u8x8;
+//extern U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8;
 
-extern IPAddress ip;
-extern IPAddress gateway;
-extern IPAddress subnet;
 
 //////////////////////////////////////////
 extern const char* apName;
