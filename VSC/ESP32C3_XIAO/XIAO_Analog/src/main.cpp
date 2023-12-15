@@ -23,6 +23,8 @@ IPAddress subnet(255, 255, 255, 0);
 void setup() {
   Serial.begin(115200);
   initOLED(u8x8_font_chroma48medium8_r);
+  u8x8.setCursor(0, 0);
+  u8x8.printf("Start ESP32");
   myNeopixel->InitNeopixel();
   pinMode(LED, OUTPUT);
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 1);
@@ -83,7 +85,7 @@ void loop() {
   }
 
 
-  
+
   if(count == 10)
   {
     digitalWrite(LED, HIGH);

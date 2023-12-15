@@ -116,8 +116,10 @@ void setUpWiFi()
         
         String WiFiManagerName = "WiFiManager_" + (String)apName;
         myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 1);
-        u8x8.setCursor(0, 0);
-        u8x8.printf("Start WiFiManager_ESP32\r\n");
+        u8x8.setCursor(0, 1);
+        u8x8.printf("WiFiManager\r\n");
+        u8x8.setCursor(0, 2);
+        u8x8.printf("%s\r\n", apName);
         Serial.println("Start WiFiManager => 192.168.4.1");
         wifiManager.resetSettings();
         bool wmRes = wifiManager.autoConnect(WiFiManagerName.c_str());
@@ -149,6 +151,8 @@ void setUpWiFi()
   Serial.println(WiFi.channel());
 
 // OLED
+  u8x8.clearDisplay();
+
   u8x8.setCursor(0, 0);
   u8x8.print(WiFi.localIP());
   u8x8.setCursor(0, 1);

@@ -31,9 +31,9 @@
 //#define SLAVE
 //#define XIAO
 //#define M5STAMP
-#define LOLIN32
+//#define LOLIN32
 //#define D1_MINI
-//#define ESP32Dev
+#define ESP32Dev
 //#define FIXED_IP
 
 #ifdef M5STAMP
