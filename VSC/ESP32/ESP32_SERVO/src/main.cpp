@@ -30,7 +30,8 @@ void setup() {
 //  myservo.attach(SERVO_PIN, -1, 0, 180, 1000, 2000, 50);
 #ifdef ESP32_SERVO
   myservo.setPeriodHertz(50);
-  myservo.attach(SERVO_PIN, 500, 2400);
+  myservo.attach(SERVO_PIN);
+ // myservo.attach(SERVO_PIN, 500, 2400);
   myservo.write(0);
 #endif
 
@@ -61,6 +62,21 @@ void loop() {
       break;
     }
   }
+  // for(pos = 0; pos < 180; pos += 1) { // goes from 0 degrees to 180 degrees, 1 degree steps
+  //     myservo.write(pos);              // tell servo to go to position in variable 'pos'
+  //     Serial.printf("POS : %d\r\n", pos);
+  //     delay(15);                       // waits 15ms for the servo to reach the position
+  //   }
+  //   delay(500);
+
+  //   for(pos = 180; pos>=1; pos-=1) {   // goes from 180 degrees to 0 degrees
+  //     myservo.write(pos);              // tell servo to go to position in variable 'pos'
+  //     Serial.printf("POS : %d\r\n", pos);
+  //     delay(15);                       // waits 15ms for the servo to reach the position
+  //   }
+    
+  //   delay(500);
+
 
 #ifdef FULL_DEGREE
   if(digitalRead(BTN_PIN))

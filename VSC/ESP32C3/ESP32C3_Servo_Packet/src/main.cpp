@@ -1,7 +1,7 @@
 
 #include "main.h"
 //#define DEBUG
-#define TCS3430
+//#define TCS3430
 // #define STEPPER_MOTOR
 #define TEST_BUTTON
 
@@ -81,13 +81,13 @@ void loop() {
       {
         upButtonServo();
         //Serial.println("UP");
-        delay(100);
+        delay(500);
       }
       else if(!touchToggleFlag)
       {
         downButtonServo();
         //Serial.println("DOWN");
-        delay(100);
+        delay(500);
       }
       touchToggleFlag = !touchToggleFlag;
     }    
@@ -134,11 +134,11 @@ void loop() {
       break;
 
     case 'o':
-      openServo(true);
+      openServo(false);
       break;
 
     case 'c':
-      closeServo(true);
+      closeServo(false);
       break;
 
     case '1':
@@ -243,7 +243,8 @@ void initServo()
   if(!gripperServo.attached())
   {
     gripperServo.setPeriodHertz(50);
-    gripperServo.attach(SERVO_PIN, 500, 2400);
+    //gripperServo.attach(SERVO_PIN, 500, 2400);
+    gripperServo.attach(SERVO_PIN);
   }
 
   
@@ -255,7 +256,7 @@ void initServo()
   if(!buttonServo.attached())
   {
    buttonServo.setPeriodHertz(50);
-   buttonServo.attach(SERVO_PIN2, 500, 2400);
+   buttonServo.attach(SERVO_PIN2);
   }
   
   
@@ -363,26 +364,19 @@ void openServo(bool hallSensor)
   {
     if(dataToSend.hallState == HALL_ARRIVED)
     {        
-//      gripperServo.attach(SERVO_PIN, 500, 2400);
       rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
-//      gripperServo.detach();
-      //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
       dataToSend.servoState = SERVO_OPENED;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
       SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
-      delay(100);
     }
   }
   else
   {
-//      gripperServo.attach(SERVO_PIN, 500, 2400);
       rotateServo(&gripperServo, SERVO_INITIAL_POS, 5);
- //     gripperServo.detach();
-      //Serial.printf("gripper Pos open : %d\r\n", gripperPos);
       dataToSend.servoState = SERVO_OPENED;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
       SetOutStripColor(outStrip ,0, outStrip->Color(255, 0, 255), 5, 1);
-      delay(100);
+
   }
 }
 
@@ -390,28 +384,22 @@ void closeServo(bool hallSensor)
 {
   if(hallSensor)
   {
-     if(dataToSend.hallState == HALL_ARRIVED)
+    if(dataToSend.hallState == HALL_ARRIVED)
     {
-//      gripperServo.attach(SERVO_PIN, 500, 2400);
       rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
- //     gripperServo.detach();
-      //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
       dataToSend.servoState = SERVO_CLOSED;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
       SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
-      delay(100);
+
     }
   }
   else
   {
-//      gripperServo.attach(SERVO_PIN, 500, 2400);
       rotateServo(&gripperServo, SERVO_TARGET_POS, 10);
-//      gripperServo.detach();
-      //Serial.printf("gripper Pos close : %d\r\n", gripperPos);
       dataToSend.servoState = SERVO_CLOSED;
       sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));
       SetOutStripColor(outStrip, 0, outStrip->Color(0, 0, 255), 5, 1);
-      delay(100);
+
   }
 }
 
@@ -419,7 +407,7 @@ void upButtonServo()
 {
   if(!buttonServo.attached())
   {
-    buttonServo.attach(SERVO_PIN2, 500, 2400);
+    buttonServo.attach(SERVO_PIN2);
   }
   //buttonServo.attach(SERVO_PIN2, 500, 2400);
   rotateServo(&buttonServo, SERVO2_INITIAL_POS, 5);
@@ -435,7 +423,7 @@ void downButtonServo()
   // {
   //   buttonServo.attach(SERVO_PIN2, 500, 2400);
   // }
-  buttonServo.attach(SERVO_PIN2, 500, 2400);
+  buttonServo.attach(SERVO_PIN2);
   rotateServo(&buttonServo, SERVO2_TARGET_POS, 2);
   dataToSend.buttonState = SERVO_PUSH;
   sendPacket((uint8_t*)&dataToSend, sizeof(dataToSend));

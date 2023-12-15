@@ -21,6 +21,18 @@ DNSServer dns;
 MyLittleFS* mySPIFFS = new MyLittleFS();
 MyNeopixel* myNeopixel = new MyNeopixel();
 
+U8X8_SSD1306_128X64_NONAME_SW_I2C u8x8(/* clock=*/ SCL_PIN, /* data=*/ SDA_PIN, /* reset=*/ U8X8_PIN_NONE);
+
+
+
+void initOLED(const uint8_t* _font)
+{
+  u8x8.begin();
+  u8x8.setPowerSave(0);  
+  u8x8.setFont(_font);
+  u8x8.setInverseFont(0);
+}
+
 int32_t getWiFiChannel(char *ssid)
 {
   if (int32_t n = WiFi.scanNetworks()) {
@@ -53,9 +65,9 @@ void setUpWiFi()
 //    Serial.println(mySPIFFS->ssid);
 //    Serial.println(mySPIFFS->pass);
 #ifdef FIXED_IP
-    IPAddress ip (192, 168, 1, 48);
-    IPAddress gateway (192, 168, 1, 1);
-    IPAddress subnet(255, 255, 255, 0);
+    // IPAddress ip (192, 168, 1, 48);
+    // IPAddress gateway (192, 168, 1, 1);
+    // IPAddress subnet(255, 255, 255, 0);
     WiFi.config(ip, gateway, subnet);
 #endif
 
@@ -119,6 +131,12 @@ void setUpWiFi()
   Serial.print(WiFi.localIP());
   Serial.print(" => Channel : ");
   Serial.println(WiFi.channel());
+
+// OLED
+  u8x8.setCursor(0, 0);
+  u8x8.print("IP:");
+  u8x8.setCursor(3, 0);
+  u8x8.print(WiFi.localIP());
 
 }
 

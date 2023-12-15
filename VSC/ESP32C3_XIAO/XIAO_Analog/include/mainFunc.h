@@ -19,18 +19,25 @@
 #include <esp_now.h>
 #include <esp_wifi.h>
 #include "MyLittleFS.h"
+#include <U8g2lib.h>
 
-#define MASTER
+#ifdef U8X8_HAVE_HW_SPI
+#include <SPI.h>
+#endif
+#ifdef U8X8_HAVE_HW_I2C
+#include <Wire.h>
+#endif
+
 //#define SLAVE
 //#define XIAO
 //#define M5STAMP
-//#define LOLIN32
-#define D1_MINI
+#define LOLIN32
+//#define D1_MINI
 //#define ESP32Dev
-//#define FIXED_IP
+#define FIXED_IP
 
 #ifdef M5STAMP
-#define HALL_SENSOR_PIN 4
+#define HALL_SENSOR_PIN 7
 #define LED             5
 // #define HALL_SENSOR_CUTOFF 3000 // 5V
 #define HALL_SENSOR_CUTOFF 1900 // 3.3V
@@ -43,7 +50,7 @@
 #endif
 
 #ifdef LOLIN32
-#define HALL_SENSOR_PIN 4   // GPIO4 = D2 (A2)
+#define HALL_SENSOR_PIN 34   // GPIO4 = D2 (A2)
 #define LED             5   // GPIO5 = D3 (A3)
 #define HALL_SENSOR_CUTOFF 2400
 #endif
@@ -57,8 +64,8 @@
 #ifdef ESP32Dev
 #define HALL_SENSOR_PIN 34
 #define LED             5
-// #define HALL_SENSOR_CUTOFF 3000 // 5V
-#define HALL_SENSOR_CUTOFF 2500 // 3.3V
+#define HALL_SENSOR_CUTOFF 2600 // 5V
+//#define HALL_SENSOR_CUTOFF 2500 // 3.3V
 #endif
 
 #define HALL_SENSOR_INTERVAL 100
@@ -67,6 +74,9 @@
 #define WIFI_CONNECTION_INTERVAL 10000
 #define PRINTSCANRESULTS 1
 #define DELETEBEFOREPAIR 0
+
+#define SDA_PIN 21
+#define SCL_PIN 22
 
 #pragma pack(push, 1)
 typedef struct _packet
@@ -85,7 +95,7 @@ typedef struct _packet
 #pragma pack(pop)
 
 
-typedef enum
+enum
 {
   HEARTBEAT = 0,
   
@@ -109,11 +119,16 @@ extern AsyncWebServer server;
 extern DNSServer dns;
 extern MyLittleFS* mySPIFFS;
 extern MyNeopixel* myNeopixel;
+extern U8X8_SSD1306_128X64_NONAME_SW_I2C u8x8;
+
+extern IPAddress ip;
+extern IPAddress gateway;
+extern IPAddress subnet;
 
 //////////////////////////////////////////
 extern const char* apName;
 
-
+void initOLED(const uint8_t* _font);
 int32_t getWiFiChannel(char *ssid);
 void resetBoardValue();
 void setUpWiFi();

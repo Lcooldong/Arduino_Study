@@ -1,49 +1,104 @@
 #include "mainFunc.h"
 
-const char* apName = "AP_1";
 
 
+#ifdef D1_MINI
+const char* apName = "AP_D1_MINI";
+#endif
+
+#ifdef ESP32Dev
+const char* apName = "AP_ESP32Dev";
+#endif
+
+#ifdef LOLIN32
+const char* apName = "AP_LOLIN32";
+IPAddress ip (192, 168, 1, 48);
+IPAddress gateway (192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0);
+#endif
+
+//#define MASTER
+//#define ESPNOW
+
+bool triggerFlag = false;
 
 void setup() {
   Serial.begin(115200);
+  initOLED(u8x8_font_chroma48medium8_r);
   myNeopixel->InitNeopixel();
   pinMode(LED, OUTPUT);
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 1);
 
   setUpWiFi();
   setupOTA();
+
+#ifdef ESPNOW
   setupESPNOW();
 
 #ifdef MASTER
   setupESPNOWPair();
 #endif
 
+#endif
+
   delay(1000);
 }
 
+int count = 0;
 void loop() {
   ArduinoOTA.handle();
   ElegantOTA.loop();
 
+  
   if (millis() - hallLastTime > HALL_SENSOR_INTERVAL)
   {
     int value = analogRead(HALL_SENSOR_PIN);
-//    Serial.printf("Value = %d\r\n", value);
+    Serial.printf("Value = %d | Count : %d\r\n", value, count );
+    
     hallLastTime = millis();
+    
+
 
     if(value < HALL_SENSOR_CUTOFF)
     {
-      digitalWrite(LED, HIGH);
-      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 100), 50, 1);
+      if(count >= 10)
+      {
+        count = 10;
+      }
+      else
+      {
+        ++count;
+      }
+      
     }
     else
     {
-      digitalWrite(LED, LOW);
-      myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 0), 0, 1);
-    }
-
-    
+      if(count <= 0)
+      {
+        count = 0;            
+      }
+      else
+      {
+        --count;
+      }     
+    }  
   }
+
+
+
+  if(count == 10)
+  {
+    digitalWrite(LED, HIGH);
+    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 100), 50, 1);
+    WebSerial.println("Light On ~ !!");
+  }
+  else if (count == 0)
+  {
+    digitalWrite(LED, LOW);
+    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 0), 0, 1);
+    //WebSerial.println("Light Off");
+  }
+
 
 #ifdef MASTER
   if(Serial.available())
@@ -59,5 +114,6 @@ void loop() {
 #endif
 
   resetBoardValue();
+  u8x8.refreshDisplay();
 }
 
