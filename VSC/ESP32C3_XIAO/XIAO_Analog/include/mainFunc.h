@@ -64,6 +64,7 @@
 #ifdef ESP32Dev
 #define HALL_SENSOR_PIN 34
 #define LED             5
+#define BUILTIN_LED     2
 #define HALL_SENSOR_CUTOFF 2600 // 5V
 //#define HALL_SENSOR_CUTOFF 2500 // 3.3V
 #endif

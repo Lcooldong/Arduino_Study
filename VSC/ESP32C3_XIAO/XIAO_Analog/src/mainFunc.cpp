@@ -2,6 +2,8 @@
 
 
 
+
+
 PACKET serialData = {0, };
 PACKET incomingReadings;
 esp_now_peer_info_t slave;
@@ -113,7 +115,7 @@ void setUpWiFi()
 
       if (millis() - connectionLastTime > WIFI_CONNECTION_INTERVAL)
       {
-        
+        digitalWrite(BUILTIN_LED, HIGH);
         String WiFiManagerName = "WiFiManager_" + (String)apName;
         myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 0, 255), 50, 1);
         u8x8.setCursor(0, 1);
@@ -161,7 +163,7 @@ void setUpWiFi()
   u8x8.print(WiFi.subnetMask());
   u8x8.setCursor(0, 3);
   u8x8.printf("Channel : %d\r\n", channel);
-
+  digitalWrite(BUILTIN_LED, LOW);
 }
 
 void setupESPNOW()

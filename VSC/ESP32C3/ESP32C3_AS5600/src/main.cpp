@@ -9,10 +9,17 @@
 #include <SPI.h>
 
 #include "AS5600.h"
+#include "neopixel.h"
 
-#define SDA_PIN 21
-#define SCL_PIN 22
-#define AS5600_DIR_PIN 17
+// #define SDA_PIN 21
+// #define SCL_PIN 22
+//#define AS5600_DIR_PIN 17
+
+#define SDA_PIN 7
+#define SCL_PIN 8
+#define AS5600_DIR_PIN 6
+
+
 
 
 // 참고용 변수 라이브러리에 들어있음
@@ -33,7 +40,7 @@
 // const uint8_t AS5600_MODE_RPM           = 2;
 
 
-
+MyNeopixel* myNeopxiel = new MyNeopixel();
 
 AS5600 as5600;    // 0x36
 //AS5600L as5600; // 0x40
@@ -41,11 +48,11 @@ AS5600 as5600;    // 0x36
 void setup() {
   Serial.begin(115200);
   Wire.setPins(SDA_PIN, SCL_PIN);
-
+  myNeopxiel->InitNeopixel();
   byte count = 0;
 
   Wire.begin();
-
+  myNeopxiel->pickOneLED(0, myNeopxiel->strip->Color(255, 255, 255), 50, 1);
   // I2C Scan
   for (byte i = 1; i < 120; i++)
   {
@@ -82,11 +89,10 @@ void setup() {
 }
 
 void loop() {
-   Serial.print(as5600.readAngle());
-  Serial.print("\t");
-  Serial.println(as5600.rawAngle());
-  Serial.println(as5600.rawAngle() * AS5600_RAW_TO_DEGREES);
-
+  float angle = as5600.rawAngle() * AS5600_RAW_TO_DEGREES;
+  Serial.printf("%d %d %lf \r\n",as5600.readAngle(), as5600.rawAngle(), angle);
+  int value = map(angle, 0, 359, 0, 255);
+  myNeopxiel->pickOneLED(0, myNeopxiel->Wheel((256  + value) & 255), 50, 1);
   // Serial.println(analogRead(4));
   delay(100);
 }

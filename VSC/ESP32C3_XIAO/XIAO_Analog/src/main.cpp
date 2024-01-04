@@ -1,7 +1,6 @@
 #include "mainFunc.h"
 
 
-
 #ifdef D1_MINI
 const char* apName = "AP_D1_MINI";
 #endif
@@ -20,13 +19,17 @@ IPAddress subnet(255, 255, 255, 0);
 //#define MASTER
 //#define ESPNOW
 
+
 void setup() {
   Serial.begin(115200);
   initOLED(u8x8_font_chroma48medium8_r);
   u8x8.setCursor(0, 0);
   u8x8.printf("Start ESP32");
+
+
   myNeopixel->InitNeopixel();
   pinMode(LED, OUTPUT);
+  pinMode(BUILTIN_LED, OUTPUT);
   myNeopixel->pickOneLED(0, myNeopixel->strip->Color(255, 0, 0), 50, 1);
 
   setUpWiFi();
@@ -89,7 +92,7 @@ void loop() {
   if(count == 10)
   {
     digitalWrite(LED, HIGH);
-    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 100), 50, 1);
+    myNeopixel->pickOneLED(0, myNeopixel->strip->Color(0, 255, 100), 150, 1);
     WebSerial.println("Light On\r\n");
     u8x8.setCursor(0, 4);
     u8x8.printf("Light On\r\n");
