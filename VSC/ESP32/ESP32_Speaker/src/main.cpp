@@ -43,7 +43,7 @@ void setup() {
     .mck_io_num = 0,
     #endif
     .bck_io_num = 27,
-    .ws_io_num = 14,
+    .ws_io_num = 14,    // LRCK
     .data_out_num = 26,
     .data_in_num = I2S_PIN_NO_CHANGE
     };
