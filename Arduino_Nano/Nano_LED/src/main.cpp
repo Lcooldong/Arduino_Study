@@ -27,6 +27,7 @@ void loop() {
   {
     pickOneLED(i, strip->Color(255, 255, 255), _brighness, 1);
   }
+  delay(100);
 }
 
 
