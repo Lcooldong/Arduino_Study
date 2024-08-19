@@ -12,6 +12,7 @@ void setup() {
   Serial.begin(115200);
   RPC.begin();
   #ifdef CORE_CM7
+    // LL_RCC_ForceCM4Boot(); // Enable M4 when called the M7 code 
     bootM4();
     myLED =LEDB;
     
@@ -26,13 +27,14 @@ void setup() {
 }
 
 void loop() {
-  if(millis() - lastTime > 500)
+  unsigned long currentTime = millis();
+  if(currentTime - lastTime > 500)
   {
     digitalWrite(myLED, ledState);
     ledState = !ledState;
-    lastTime = millis();
+    lastTime = currentTime;
   }
-  if(millis() - cntLastTime > 1000)
+  if(currentTime - cntLastTime > 1000)
   {
     count++;
   #ifdef CORE_CM7
@@ -45,7 +47,7 @@ void loop() {
     RPC.println(count);
   #endif
 
-    cntLastTime = millis();
+    cntLastTime = currentTime;
   }
   #ifdef CORE_CM7
   if(RPC.available())
