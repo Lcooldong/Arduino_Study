@@ -30,7 +30,7 @@ void loop() {
   unsigned long currentTime = millis();
   if(currentTime - lastTime > 500)
   {
-    digitalWrite(myLED, ledState);
+    digitalWrite(myLED, ledState);  // LOW 가 ON
     ledState = !ledState;
     lastTime = currentTime;
   }
