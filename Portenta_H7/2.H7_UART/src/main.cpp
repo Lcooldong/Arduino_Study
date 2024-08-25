@@ -4,6 +4,8 @@
 #define BAUDRATE 115200
 #define INTERVAL 1000
 
+#define Serial1 _UART1_ 
+
 uint64_t previousMillis = 0;
 int count = 0;
 char buffer[32];
@@ -13,14 +15,17 @@ char t2[] = "]-";
 
 uint8_t leds[] = {LEDR, LEDG, LEDB};
 
-
-
+UART UART0Breakout = UART(PA_0, PI_9);
+UART UART2Breakout = UART(PG_14, PG_9);
 
 void setup() {
   Serial.begin(115200);
-  // Serial1.begin(BAUDRATE);
-  // Serial2.begin(BAUDRATE);
-  // Serial3.begin(BAUDRATE);
+
+  Serial1.begin(BAUDRATE);        // UART1
+  Serial3.begin(BAUDRATE);        // UART3
+
+  UART0Breakout.begin(BAUDRATE);  // UART0
+  UART2Breakout.begin(BAUDRATE);  // UART2
 
   delay(3000);
 
@@ -64,10 +69,11 @@ void loop() {
     // Serial.print(" <= ");
     // Serial.println(count);
 
+    UART0Breakout.println((String)"UART0 : " +count);
+    Serial1.println((String)"UART1 : " + count);
+    UART2Breakout.println((String)"UART2 : " + count);
+    Serial3.println((String)"UART3 : " + count);
 
-    // Serial1.print(count);
-    // Serial2.print(count);
-    // Serial3.print(count);
 
     previousMillis = currentMillis;
   }
