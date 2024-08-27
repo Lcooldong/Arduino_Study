@@ -13,6 +13,7 @@ using namespace ControlTableItem;
 
 void setup() {
   Serial.begin(115200);
+
   pinMode(LED_BUILTIN, OUTPUT);
   // Set Port baudrate to 57600bps. This has to match with DYNAMIXEL baudrate.
   dxl.begin(57600);
