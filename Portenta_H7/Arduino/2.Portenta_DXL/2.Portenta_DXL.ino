@@ -28,7 +28,6 @@ void setup() {
   for(int i=0; i< sizeof(leds); i++)
   {
     digitalWrite(leds[i], HIGH);
-
   }
  digitalWrite(leds[0], LOW);
 #endif
@@ -71,6 +70,13 @@ void loop() {
   {
     char ch = Serial3.read();
     Serial.println((String)"Return : " + ch);
+    // char buf[4] = {0,};
+    // Serial3.readBytes(buf, sizeof(buf));
+    // for(int i=0; i<sizeof(buf); i++)
+    // {
+    //   Serial.print(buf[i]);
+    // }
+    // Serial.println("\r\n-----------------");
   }
   if(Serial.available() > 0)
   {
