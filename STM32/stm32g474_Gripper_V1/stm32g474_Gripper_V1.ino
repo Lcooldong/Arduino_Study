@@ -1,3 +1,5 @@
+#include <MightyZap.h>
+
 #include <Dynamixel2Arduino.h>
 #include <MightyZap.h>
 #include <Wire.h>
@@ -5,10 +7,45 @@
 #include <HardwareSerial.h>
 #include "can.h"
 
-#define I2C_ADDRESS 0x48
-#define I2C1_SDA    PB7
-#define I2C1_SCL    PA15
-#define LED_BUILTIN PC6
+#define I2C_ADDRESS   0x48
+#define I2C1_SDA      PB7
+#define I2C1_SCL      PA15
+#define LED_BUILTIN   PC6
+
+#define UART2_DE      PA1
+#define UART2_TX      PA2
+#define UART2_RX      PA3     
+
+
+#define DXL_ID                1
+#define DXL_BAUDRATE          57600
+#define DXL_INITIAL_VELOCITY  100
+#define DXL_MAX_POSITION      4095
+#define DXL_TARGET_POSITION   1350
+#define DXL_SUB_POSITION      600
+#define DXL_INITIAL_POSITION  0
+
+#define LSV_ID                  0
+#define LINEAR_INITIAL_POSITION 0
+#define LINEAR_RELEASE_POSITION 300
+#define LINEAR_PUSH_POSITION    2800
+#define LINEAR_MAX_POSITION     3600
+#define LINEAR_MAX_SPEED        1023
+
+
+const float DXL_PROTOCOL_VERSION = 2.0;
+
+
+typedef struct{
+  uint16_t dxl_position;
+  uint16_t dxl_velocity;
+  bool     dxl_connection;
+  uint16_t lsv_position;
+  uint16_t lsv_speed;
+  
+}gripper_t;
+
+gripper_t myGripper;
 
 uint32_t curMillis = 0;
 uint32_t lastMillis[4] = {0,};
@@ -23,14 +60,23 @@ enum{
 
 uint8_t select_mode = 0x00; 
 
+HardwareSerial UART2(UART2_RX, UART2_TX);
+Dynamixel2Arduino dxl(UART2, UART2_DE);
+Mightyzap lsv(&UART2, UART2_DE);
+
 ADS1115_WE adc = ADS1115_WE(I2C_ADDRESS);
+// using namespace ControlTableItem;
 
 bool ads1115_init();
+bool motor_init();
 
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT); // PC6
   
+  ads1115_init();
+  motor_init();
+
 }
 
 void loop() {
@@ -86,4 +132,62 @@ bool ads1115_init()
     adc.setMeasureMode(ADS1115_CONTINUOUS);
     return true;
   }
+}
+
+bool motor_init()
+{
+  dxl.begin(DXL_BAUDRATE);
+  dxl.setPortProtocolVersion(DXL_PROTOCOL_VERSION);
+  if(dxl.ping(DXL_ID))
+  {
+    dxl.torqueOff(DXL_ID);
+    dxl.setOperatingMode(DXL_ID, OP_POSITION);
+    dxl.torqueOn(DXL_ID);
+
+    dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, DXL_ID, DXL_INITIAL_VELOCITY);
+  }
+  else
+  {
+    return false;
+  }
+
+  lsv.begin(32);
+  lsv.GoalSpeed(LSV_ID, LINEAR_MAX_SPEED);
+
+  if(lsv.ping(LSV_ID) != 0xff)
+  {
+    lsv.GoalPosition(LSV_ID, LINEAR_INITIAL_POSITION);
+  }
+  else
+  {
+    return false;
+  }
+
+  return true;
+}
+
+void dxl_init()
+{
+
+
+}
+
+void lsv_init()
+{
+
+}
+
+bool motor_reconnect()
+{
+  bool dxl_state = dxl.ping(DXL_ID);
+  if(dxl_state)
+  {
+    if(dxl_connection != dxl_state)
+    {
+      dxl.setOperatingMode(DXL_ID, OP_POSITION)
+
+    }
+
+  }
+
 }
