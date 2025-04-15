@@ -35,26 +35,34 @@
 
 const float DXL_PROTOCOL_VERSION = 2.0;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
-  float voltage;
-  int16_t raw;
+  float voltage;  // 4
+  int16_t raw;    // 2
 
 }ads_t;
 
+typedef struct __attribute__((packed))
+{
+  bool     led_toggle;      // 1
+  uint8_t  led_value;       // 1
+}led_t;
 
+typedef struct __attribute__((packed))
+{
+  uint16_t dxl_position;    // 2
+  uint16_t dxl_velocity;    // 2
+  bool     dxl_connection;  // 1
 
+  uint16_t lsv_position;    // 2
+  uint16_t lsv_speed;       // 2
+  int      lsv_connection;  // 4
 
-typedef struct __attribute__((packed)){
-  uint16_t dxl_position;
-  uint16_t dxl_velocity;
-  bool     dxl_connection;
+  bool     hall_toggle;     // 1
+  ads_t    hallSensor;      // 6
 
-  uint16_t lsv_position;
-  uint16_t lsv_speed;
-  int      lsv_connection;
+  led_t    mainLed;
 
-  bool     hall_toggle;
 }gripper_t;
 
 typedef union
