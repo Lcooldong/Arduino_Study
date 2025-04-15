@@ -54,10 +54,10 @@ const uint32_t dlc_tbl[] =
         FDCAN_DLC_BYTES_6,
         FDCAN_DLC_BYTES_7,
         FDCAN_DLC_BYTES_8,
-        FDCAN_DLC_BYTES_12,
+        FDCAN_DLC_BYTES_12,   
         FDCAN_DLC_BYTES_16,
         FDCAN_DLC_BYTES_20,
-        FDCAN_DLC_BYTES_24,
+        FDCAN_DLC_BYTES_24,   // DLC 12 -> 24 Bytes
         FDCAN_DLC_BYTES_32,
         FDCAN_DLC_BYTES_48,
         FDCAN_DLC_BYTES_64
