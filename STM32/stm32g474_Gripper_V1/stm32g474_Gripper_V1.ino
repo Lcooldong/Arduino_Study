@@ -35,18 +35,42 @@
 
 const float DXL_PROTOCOL_VERSION = 2.0;
 
+typedef struct
+{
+  float voltage;
+  int16_t raw;
 
-typedef struct{
+}ads_t;
+
+
+
+
+typedef struct __attribute__((packed)){
   uint16_t dxl_position;
   uint16_t dxl_velocity;
   bool     dxl_connection;
+
   uint16_t lsv_position;
   uint16_t lsv_speed;
   int      lsv_connection;
+
   bool     hall_toggle;
 }gripper_t;
 
+typedef union
+{
+  gripper_t gripper;
+  uint8_t datas[sizeof(gripper_t)];
+
+}gripper_packet_t;
+
+gripper_packet_t packet;
+
+
+
+
 gripper_t myGripper;
+ads_t myADS;
 
 uint32_t serialLastTime = 0;
 uint32_t curMillis = 0;
@@ -54,7 +78,7 @@ uint32_t lastMillis[4] = {0,};
 bool led_state = false;
 uint32_t led_value =0;
 uint8_t led_direction = 0;
-float voltage = 0.0;
+
 
 
 enum{
@@ -82,7 +106,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT); // PC6
   
-
+  delay(1000);
 
   ads1115_init();
   motor_init();
@@ -102,19 +126,23 @@ void loop() {
   }
 
   // // MOTOR
-  // if(curMillis - lastMillis[0] >= 100)
-  // {
-  //   lastMillis[0] = curMillis;
+  if(curMillis - lastMillis[0] >= 100)
+  {
+    lastMillis[0] = curMillis;
 
-  //   if(myGripper.dxl_connection)
-  //   {
-  //     dxl.setGoalPosition(DXL_ID, myGripper.dxl_position);
-  //   }
-  //   if(myGripper.lsv_connection)
-  //   {
-  //     lsv.GoalPosition(LSV_ID, myGripper.lsv_position);
-  //   }
-  // }
+    if(myGripper.dxl_connection)
+    {
+      dxl.setGoalPosition(DXL_ID, myGripper.dxl_position);
+    }
+    if(myGripper.lsv_connection)
+    {
+      lsv.GoalPosition(LSV_ID, myGripper.lsv_position);
+    }
+  }
+  else  // Toque off
+  {
+
+  }
 
 
 
@@ -123,9 +151,10 @@ void loop() {
   if((curMillis - lastMillis[1] >= 100) && myGripper.hall_toggle)
   {
     lastMillis[1] = curMillis;
-    voltage = adc.getResult_V();
+    myADS.voltage = adc.getResult_V();
+    myADS.raw = adc.getRawResult();
 
-    Serial.printf("Result => %0.2f [%d]\r\n", voltage, adc.getRawResult());
+    Serial.printf("Result => %0.2f [%d]\r\n", myADS.voltage, myADS.raw);
   }
 
   // INDICATOR
@@ -174,11 +203,11 @@ bool motor_init()
 {
   if(dxl_init() && lsv_init())
   {
-
+    Serial.println("Motor Begin");
   }
   else
   {
-
+    Serial.println("Motor Not Connected");
     return false;
   }
 
@@ -282,11 +311,11 @@ void serialCommand()
         {
         case '1':
           Serial.println("1");
-          myGripper.hall_toggle = false;
+          myGripper.hall_toggle = !myGripper.hall_toggle;
           break;
         case '2':
           Serial.println("2");
-          myGripper.hall_toggle = true;
+
           break;
         case '3':
           Serial.println("3");
