@@ -23,6 +23,7 @@ HardwareSerial UART2(UART2_RX, UART2_TX);
 RS485 rs485(&UART2, UART2_DE, DEVICE_ID);
 
 
+
 void setup() {
   Serial.begin(115200);
   UART2.begin(57600);
@@ -53,5 +54,12 @@ void loop() {
     delay(1);
     rs485.printf("RECV : 0x%02X\r\n", text);
     
+  }
+
+  if(UART2.available()>0)
+  {
+    int ch = UART2.read();
+    delay(1);
+    // UART2.printf("RECV : 0x%02X\r\n", ch);
   }
 }

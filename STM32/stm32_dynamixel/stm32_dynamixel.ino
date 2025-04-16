@@ -27,6 +27,7 @@
 uint32_t lastMillis[3] = {0,};
 bool led_state = false;
 uint32_t count = 0;
+uint32_t command_count = 0;
 bool while_recv = false;
 
 const int dxl_offset = 50;
@@ -37,6 +38,7 @@ int dxlTargetPosition = 0;
 
 HardwareSerial UART2(UART2_RX, UART2_TX);
 Dynamixel2Arduino dxl(UART2, UART2_DE);
+// Dynamixel2Arduino dxl(UART2);
 
 using namespace ControlTableItem;
 
@@ -91,6 +93,7 @@ void loop() {
   if(curMillis -lastMillis[1] >= 1000)
   {
     lastMillis[1] = curMillis;
+    command_count++;
     dxlReconnect();
   }
 
@@ -159,7 +162,8 @@ void dxlReconnect()
   }
   else
   {
-    Serial.println("Not Connected");      
+    
+    Serial.printf("[%d] Not Connected\r\n", command_count);      
   }
   dxlConnectionLastState = dxlConnectState;
 }
