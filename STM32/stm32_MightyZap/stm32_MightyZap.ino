@@ -60,7 +60,7 @@ void loop() {
     {
       linearServo.ledOn(LINEAR_ID, GREEN);
     }
-    Serial.printf("[%d]\r\n", count);
+    Serial.printf("[%d] : 0x%02X\r\n", count, linearServo.ping(LINEAR_ID));
     linearServo.ping(LINEAR_ID);
   }
   else

@@ -142,8 +142,7 @@ enum{
 uint8_t select_mode = 0x00; 
 
 HardwareSerial UART2(UART2_RX, UART2_TX);
-// Dynamixel2Arduino dxl(UART2, UART2_DE);
-Dynamixel2Arduino dxl(UART2);
+Dynamixel2Arduino dxl(UART2, UART2_DE);
 
 Mightyzap lsv(&UART2, UART2_DE);
 ADS1115_WE adc = ADS1115_WE(DEVICE_ADDRESS);
@@ -209,7 +208,7 @@ void loop() {
       dxl.setGoalPosition(DXL_ID, myGripper.dxl.position);
       // Serial.printf("0x%02X\r\n", myGripper.dxl.position);
     }
-
+  
     if(myGripper.lsv.status >= CONNECTED)
     {
       lsv.GoalPosition(LSV_ID, myGripper.lsv.position);
@@ -251,6 +250,7 @@ void loop() {
     myGripper.dxl.status, 
     myGripper.dxl.position,
     myGripper.lsv.status, 
+ 
     myGripper.lsv.position,
     myGripper.hallSensor.status, 
     myGripper.led.colors.pixelColor.red,
@@ -516,11 +516,12 @@ bool dxl_init()
 
     // dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, DXL_ID, DXL_INITIAL_VELOCITY);
     dxl.writeControlTableItem(PROFILE_VELOCITY, DXL_ID, DXL_INITIAL_VELOCITY);
+    Serial.println("DXL Connected");
   }
   else
   {
-    return false;
     Serial.println("Fail to connect DXL");
+    return false;    
   }
 
   return true;
@@ -530,18 +531,20 @@ bool lsv_init()
 {
   lsv.begin(32);
   lsv.GoalSpeed(LSV_ID, LINEAR_MAX_SPEED);
+  lsv.GoalPosition(LSV_ID, LINEAR_INITIAL_POSITION);
   myGripper.lsv.status = lsv.ping(LSV_ID);
   
-  if(myGripper.lsv.status == 0xff)
-  {
-    Serial.printf("LinearServo Connected\r\n");
-    lsv.GoalPosition(LSV_ID, LINEAR_INITIAL_POSITION);
-  }
-  else
-  {
-    Serial.printf("LinearServo Not Connected\r\n");
-    return false;
-  }
+  Serial.printf("0x%02X LSV PING\r\n", lsv.getTxRxStatus());
+  // if(myGripper.lsv.status == 0xff)
+  // {
+  //   Serial.printf("LinearServo Connected\r\n");
+  //   lsv.GoalPosition(LSV_ID, LINEAR_INITIAL_POSITION);
+  // }
+  // else
+  // {
+  //   Serial.printf("LinearServo Not Connected\r\n");
+  //   return false;
+  // }
 
   return true;
 }
@@ -573,23 +576,33 @@ bool motor_reconnect()
   }  
   myGripper.dxl.status = dxl_state;
   
+  lsv_state = lsv.getModelNumber(LSV_ID); // 한번 저장되어서 안변함
 
-  lsv_state = lsv.ping(LSV_ID);
   if(lsv_state != 0x00)
   {
-    if(myGripper.lsv.status != lsv_state)
-    { 
-      Serial.printf("LSV Reconnected\r\n");
-    }
-    ret = true;
+    Serial.printf("LSV Once Connected 0x%02X\r\n", lsv_state);
   }
   else
   {
-    // Serial.printf("LSV Not Connected\r\n");
-
-    ret = false;
+    Serial.printf("LSV NOT Conneceted 0x%02X\r\n", lsv_state);
   }
-  myGripper.lsv.status = lsv_state;
+
+  // lsv_state = lsv.ping(LSV_ID);
+  // if(lsv_state != 0x00)
+  // {
+  //   if(myGripper.lsv.status != lsv_state)
+  //   { 
+  //     Serial.printf("LSV Reconnected\r\n");
+  //   }
+  //   ret = true;
+  // }
+  // else
+  // {
+  //   Serial.printf("LSV Not Connected 0x%02X\r\n", lsv_state);
+
+  //   ret = false;
+  // }
+  // myGripper.lsv.status = lsv_state;
 
   return ret;
 }

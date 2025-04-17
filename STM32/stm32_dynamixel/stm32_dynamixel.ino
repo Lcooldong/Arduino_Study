@@ -47,17 +47,29 @@ void dxlReconnect();
 
 void setup() {
   Serial.begin(115200);
+  delay(1000);
   pinMode(LED_BUILTIN, OUTPUT);
+
+  Serial.print("Init Dynamixel => ");
 
   dxl.begin(DXL_BAUDRATE);  
   dxl.setPortProtocolVersion(DXL_PROTOCOL_VERSION);
-  dxl.ping(DXL_ID); 
+  if(dxl.ping(DXL_ID))
+  {
+    Serial.println("DXL Connected");
+  }
+  else
+  {
+    Serial.println("DXL Not Connected");
+  }
 
   dxl.torqueOff(DXL_ID);
   dxl.setOperatingMode(DXL_ID, OP_POSITION);
   dxl.torqueOn(DXL_ID);
 
   dxl.writeControlTableItem(PROFILE_VELOCITY, DXL_ID, DXL_INITIAL_VELOCITY);
+
+
 }
 
 void loop() {
