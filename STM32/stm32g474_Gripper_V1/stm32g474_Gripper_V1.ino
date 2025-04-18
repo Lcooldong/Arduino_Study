@@ -118,7 +118,7 @@ gripper_packet_t packet;
 
 
 
-gripper_t myGripper;
+gripper_t *myGripper;
 ads_t myADS;
 
 uint32_t serialLastTime = 0;
@@ -167,6 +167,9 @@ void led_setColor(uint8_t color[3], uint8_t brightness);
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT); // PC6
+
+  myGripper = &packet.gripper;   // Struct -> Union
+
   canInit();
   can_ret = canOpen(_DEF_CAN1, CAN_NORMAL, CAN_FD_NO_BRS, CAN_500K, CAN_2M);
   led_init();
@@ -174,8 +177,8 @@ void setup() {
 
   ads1115_init();
   motor_init();
-  myGripper.hallSensor.toggleSwitch = false;
-  myGripper.led.ledSwitch = false;
+  myGripper->hallSensor.toggleSwitch = false;
+  myGripper->led.ledSwitch = false;
 
   uint8_t colorGreen[3] = {0, 255, 0};
   led_setColor(colorGreen, 5);
@@ -203,16 +206,16 @@ void loop() {
   {
     lastMillis[0] = curMillis;
 
-    if(myGripper.dxl.status >= CONNECTED)
+    if(myGripper->dxl.status >= CONNECTED)
     {
-      dxl.setGoalPosition(DXL_ID, myGripper.dxl.position);
-      // Serial.printf("0x%02X\r\n", myGripper.dxl.position);
+      dxl.setGoalPosition(DXL_ID, myGripper->dxl.position);
+      // Serial.printf("0x%02X\r\n", myGripper->dxl.position);
     }
   
-    if(myGripper.lsv.status >= CONNECTED)
+    if(myGripper->lsv.status >= CONNECTED)
     {
-      lsv.GoalPosition(LSV_ID, myGripper.lsv.position);
-      // Serial.printf("0x%02X\r\n", myGripper.lsv.position);
+      lsv.GoalPosition(LSV_ID, myGripper->lsv.position);
+      // Serial.printf("0x%02X\r\n", myGripper->lsv.position);
     }
   }
   else   // Toque off
@@ -222,15 +225,20 @@ void loop() {
 
 
   // HALL SENSOR
-  if((curMillis - lastMillis[1] >= 100) && myGripper.hallSensor.toggleSwitch && myGripper.hallSensor.status)
+  if((curMillis - lastMillis[1] >= 100) && myGripper->hallSensor.toggleSwitch && myGripper->hallSensor.status)
   {
     lastMillis[1] = curMillis;
-    myGripper.hallSensor.voltage = adc.getResult_V();
-    myGripper.hallSensor.raw = adc.getRawResult();
-    if(myGripper.hallSensor.raw != 0)
+    myGripper->hallSensor.voltage = adc.getResult_V();
+    myGripper->hallSensor.raw = adc.getRawResult();
+    if(myGripper->hallSensor.raw != 0)
     {
-      Serial.printf("Result => %0.2f [%d]\r\n", myGripper.hallSensor.voltage, myGripper.hallSensor.raw);
+      Serial.printf("Result => %0.2f [%d]\r\n", myGripper->hallSensor.voltage, myGripper->hallSensor.raw);
     }
+  }
+  else if(!myGripper->hallSensor.toggleSwitch || !myGripper->hallSensor.status)
+  {
+    myGripper->hallSensor.voltage = 0.0;
+    myGripper->hallSensor.raw = 0;
   }
 
   // INDICATOR
@@ -240,22 +248,22 @@ void loop() {
     digitalWrite(LED_BUILTIN, led_state);
     led_state = !led_state;
 
-    if(myGripper.led.ledSwitch == DISCONNECTED)
+    if(myGripper->led.ledSwitch == DISCONNECTED)
     {
       uint8_t lightOff[3] = {0, 0, 0};
       led_setColor(lightOff, 0);
     }
 
     Serial.printf("DXL:%d[%d]| LSV:0x%02X[%d]| HALL:%d| %02X,%02X,%02X\r\n", 
-    myGripper.dxl.status, 
-    myGripper.dxl.position,
-    myGripper.lsv.status, 
+    myGripper->dxl.status, 
+    myGripper->dxl.position,
+    myGripper->lsv.status, 
  
-    myGripper.lsv.position,
-    myGripper.hallSensor.status, 
-    myGripper.led.colors.pixelColor.red,
-    myGripper.led.colors.pixelColor.green,
-    myGripper.led.colors.pixelColor.blue );
+    myGripper->lsv.position,
+    myGripper->hallSensor.status, 
+    myGripper->led.colors.pixelColor.red,
+    myGripper->led.colors.pixelColor.green,
+    myGripper->led.colors.pixelColor.blue );
 
     can_msg_t msg;
     
@@ -264,13 +272,15 @@ void loop() {
     msg.dlc     = CAN_DLC_32;
     msg.id      = 0x314;
     msg.length  = 32;
-    for (int i=0; i < msg.length; i++) {
-      msg.data[i] = i;
-    }
-    // canSend(CAN_CH, msg);
+
+    memcpy(msg.data, packet.datas, sizeof(gripper_t));
+    // for (int i=0; i < msg.length; i++) {
+    //   msg.data[i] = i;
+    // }
+    canSend(CAN_CH, msg);
   }
 
-  if(myGripper.led.ledSwitch == CONNECTED)
+  if(myGripper->led.ledSwitch == CONNECTED)
   {
     uint8_t lightOn[3] = {255, 255, 255};
     led_setColor(lightOn, 20);
@@ -282,7 +292,7 @@ void loop() {
   {
     lastMillis[3] = curMillis;
     motor_reconnect();
-    myGripper.hallSensor.status = i2cReconnect(DEVICE_ADDRESS);
+    myGripper->hallSensor.status = i2cReconnect(DEVICE_ADDRESS);
   }
 
 }
@@ -302,28 +312,28 @@ void serialCommand()
         {
         case '1':
           Serial.println("1");
-          myGripper.hallSensor.toggleSwitch = !myGripper.hallSensor.toggleSwitch;
+          myGripper->hallSensor.toggleSwitch = !myGripper->hallSensor.toggleSwitch;
           break;
         case '2':
           Serial.println("2");
-          myGripper.led.ledSwitch = !myGripper.led.ledSwitch;
+          myGripper->led.ledSwitch = !myGripper->led.ledSwitch;
           break;
         case '3':
           Serial.println("3");
-          // if(myGripper.dxl.status == CONNECTED)
+          // if(myGripper->dxl.status == CONNECTED)
           // {
-            switch (myGripper.dxl.position) 
+            switch (myGripper->dxl.position) 
             {
               case DXL_INITIAL_POSITION:
-                myGripper.dxl.position = DXL_SUB_POSITION;
+                myGripper->dxl.position = DXL_SUB_POSITION;
               break;
 
               case DXL_SUB_POSITION:
-                myGripper.dxl.position = DXL_TARGET_POSITION;
+                myGripper->dxl.position = DXL_TARGET_POSITION;
                 break;
 
               case DXL_TARGET_POSITION:
-                myGripper.dxl.position = DXL_INITIAL_POSITION;
+                myGripper->dxl.position = DXL_INITIAL_POSITION;
                 break;
             }
           // }
@@ -331,18 +341,18 @@ void serialCommand()
           break;
         case '4':
           Serial.println("4");
-          switch (myGripper.lsv.position) 
+          switch (myGripper->lsv.position) 
           {
             case LINEAR_INITIAL_POSITION:
-              myGripper.lsv.position = LINEAR_PUSH_POSITION;
+              myGripper->lsv.position = LINEAR_PUSH_POSITION;
             break;
 
             case LINEAR_PUSH_POSITION:
-              myGripper.lsv.position = LINEAR_RELEASE_POSITION;
+              myGripper->lsv.position = LINEAR_RELEASE_POSITION;
               break;
 
             case LINEAR_RELEASE_POSITION:
-              myGripper.lsv.position = LINEAR_INITIAL_POSITION;
+              myGripper->lsv.position = LINEAR_INITIAL_POSITION;
               break;
           }
           break;
@@ -484,15 +494,15 @@ bool ads1115_init()
 
 bool motor_init()
 { 
-  myGripper.dxl.status = dxl_init();
-  myGripper.lsv.status = lsv_init();
-  Serial.printf("%d | %d\r\n", myGripper.dxl.status, myGripper.lsv.status);
+  myGripper->dxl.status = dxl_init();
+  myGripper->lsv.status = lsv_init();
+  Serial.printf("%d | %d\r\n", myGripper->dxl.status, myGripper->lsv.status);
 
-  if(myGripper.dxl.status == CONNECTED && myGripper.lsv.status == CONNECTED)
+  if(myGripper->dxl.status == CONNECTED && myGripper->lsv.status == CONNECTED)
   {
     Serial.println("Motor Begin");
-    myGripper.dxl.position = DXL_INITIAL_POSITION;
-    myGripper.lsv.position = LINEAR_INITIAL_POSITION;
+    myGripper->dxl.position = DXL_INITIAL_POSITION;
+    myGripper->lsv.position = LINEAR_INITIAL_POSITION;
   }
   else
   {
@@ -507,8 +517,8 @@ bool dxl_init()
 {
   dxl.begin(DXL_BAUDRATE);
   dxl.setPortProtocolVersion(DXL_PROTOCOL_VERSION);
-  myGripper.dxl.status = dxl.ping(DXL_ID);
-  if(myGripper.dxl.status)
+  myGripper->dxl.status = dxl.ping(DXL_ID);
+  if(myGripper->dxl.status)
   {
     dxl.torqueOff(DXL_ID);
     dxl.setOperatingMode(DXL_ID, OP_POSITION);
@@ -532,10 +542,10 @@ bool lsv_init()
   lsv.begin(32);
   lsv.GoalSpeed(LSV_ID, LINEAR_MAX_SPEED);
   lsv.GoalPosition(LSV_ID, LINEAR_INITIAL_POSITION);
-  myGripper.lsv.status = lsv.ping(LSV_ID);
+  myGripper->lsv.status = lsv.ping(LSV_ID);
   
   Serial.printf("0x%02X LSV PING\r\n", lsv.getTxRxStatus());
-  // if(myGripper.lsv.status == 0xff)
+  // if(myGripper->lsv.status == 0xff)
   // {
   //   Serial.printf("LinearServo Connected\r\n");
   //   lsv.GoalPosition(LSV_ID, LINEAR_INITIAL_POSITION);
@@ -559,7 +569,7 @@ bool motor_reconnect()
   dxl_state = dxl.ping(DXL_ID); // current
   if(dxl_state)
   {
-    if(myGripper.dxl.status != dxl_state)   // state change
+    if(myGripper->dxl.status != dxl_state)   // state change
     {
       dxl.setOperatingMode(DXL_ID, OP_POSITION);
       dxl.torqueOn(DXL_ID);
@@ -574,7 +584,7 @@ bool motor_reconnect()
     // Serial.printf("DXL Not Connected\r\n");
     ret = false;
   }  
-  myGripper.dxl.status = dxl_state;
+  myGripper->dxl.status = dxl_state;
   
   lsv_state = lsv.getModelNumber(LSV_ID); // 한번 저장되어서 안변함
 
@@ -590,7 +600,7 @@ bool motor_reconnect()
   // lsv_state = lsv.ping(LSV_ID);
   // if(lsv_state != 0x00)
   // {
-  //   if(myGripper.lsv.status != lsv_state)
+  //   if(myGripper->lsv.status != lsv_state)
   //   { 
   //     Serial.printf("LSV Reconnected\r\n");
   //   }
@@ -602,7 +612,7 @@ bool motor_reconnect()
 
   //   ret = false;
   // }
-  // myGripper.lsv.status = lsv_state;
+  // myGripper->lsv.status = lsv_state;
 
   return ret;
 }
@@ -630,8 +640,8 @@ void led_setColor(uint8_t color[3], uint8_t brightness)
   for (int i=0; i<NUMPIXELS; i++) {
     pixels.setPixelColor(i, pixels.Color(color[0], color[1], color[2]));
   }
-  memcpy(myGripper.led.colors.pixelColorArray, color, sizeof(color));
-  myGripper.led.colors.pixelColor.brightness  = brightness;
+  memcpy(myGripper->led.colors.pixelColorArray, color, sizeof(color));
+  myGripper->led.colors.pixelColor.brightness  = brightness;
 
   pixels.show();
 }
