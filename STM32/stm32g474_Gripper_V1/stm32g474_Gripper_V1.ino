@@ -254,16 +254,31 @@ void loop() {
       led_setColor(lightOff, 0);
     }
 
-    Serial.printf("DXL:%d[%d]| LSV:0x%02X[%d]| HALL:%d| %02X,%02X,%02X\r\n", 
-    myGripper->dxl.status, 
-    myGripper->dxl.position,
-    myGripper->lsv.status, 
- 
-    myGripper->lsv.position,
-    myGripper->hallSensor.status, 
-    myGripper->led.colors.pixelColor.red,
-    myGripper->led.colors.pixelColor.green,
-    myGripper->led.colors.pixelColor.blue );
+    // Serial.printf("DXL:%d[%d]| LSV:0x%02X[%d]| HALL:%d| %02X,%02X,%02X \r\n", 
+    // myGripper->dxl.status, 
+    // myGripper->dxl.position,
+    // myGripper->lsv.status, 
+    // myGripper->lsv.position,
+    // myGripper->hallSensor.status, 
+    // myGripper->led.colors.pixelColor.red,
+    // myGripper->led.colors.pixelColor.green,
+    // myGripper->led.colors.pixelColor.blue,
+    // );
+    
+    RCC_PeriphCLKInitTypeDef clkconf;
+    // RCC_PeriphCLKFreqTypeDef clkfreq;
+
+    HAL_RCCEx_GetPeriphCLKConfig(&clkconf);
+    clkconf.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
+
+    Serial.printf("%d | %d | %d | %d  %d\r\n", 
+    HAL_RCC_GetSysClockFreq(),
+    HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_FDCAN),
+    // __HAL_RCC_GET_SYSCLK_SOURCE()==RCC_SYSCLKSOURCE_STATUS_PLLCLK?"PLL":"NOT",
+    RCC_SYSCLKSOURCE_STATUS_HSE,
+    GetFdcanBaudRate(CAN_CH),
+    GetFdcanDataPhaseBaudRate(CAN_CH)
+    );
 
     can_msg_t msg;
     

@@ -179,7 +179,7 @@ bool canInitRCC(void)
 
   HAL_RCC_GetOscConfig(&RCC_OscInitStruct);
 
-  RCC_OscInitStruct.PLL.PLLN = 80; // 85
+  RCC_OscInitStruct.PLL.PLLN = 40; // 85
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) 
   {
     ret = false;
@@ -988,10 +988,11 @@ void SystemClock_Config(void)
   /* Configure the main internal regulator output voltage */
   HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
   /* Initializes the CPU, AHB and APB busses clocks */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSI
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSE
                               |RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  // RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   // RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -1026,6 +1027,45 @@ void SystemClock_Config(void)
   }
 #endif
 }
+
+uint32_t GetFdcanBaudRate(uint8_t ch)
+{
+  FDCAN_HandleTypeDef  *p_can;
+  if(ch > CAN_MAX_CH) return false;
+
+  p_can = &can_tbl[ch].hfdcan;
+
+  uint32_t fdcan_clk = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_FDCAN);
+
+  // Get from init structure
+  uint32_t prescaler = p_can->Init.NominalPrescaler;
+  uint32_t seg1 = p_can->Init.NominalTimeSeg1;
+  uint32_t seg2 = p_can->Init.NominalTimeSeg2;
+
+  uint32_t tq = 1 + seg1 + seg2;
+
+  return fdcan_clk / (prescaler * tq);
+}
+
+uint32_t GetFdcanDataPhaseBaudRate(uint8_t ch)
+{
+  FDCAN_HandleTypeDef  *p_can;
+  if(ch > CAN_MAX_CH) return false;
+
+  p_can = &can_tbl[ch].hfdcan;
+
+  uint32_t fdcan_clk = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_FDCAN);
+
+  uint32_t prescaler = p_can->Init.DataPrescaler;
+  uint32_t seg1 = p_can->Init.DataTimeSeg1;
+  uint32_t seg2 = p_can->Init.DataTimeSeg2;
+
+  uint32_t tq = 1 + seg1 + seg2;
+
+  return fdcan_clk / (prescaler * tq);
+}
+
+
 
 #ifdef _USE_HW_CLI
 void cliCan(cli_args_t *args)

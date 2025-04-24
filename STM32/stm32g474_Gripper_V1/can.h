@@ -171,6 +171,9 @@ void     canDetachRxInterrupt(uint8_t ch);
 bool     canLock(void);
 bool     canUnLock(void);
 
+uint32_t GetFdcanBaudRate(uint8_t ch);
+uint32_t GetFdcanDataPhaseBaudRate(uint8_t ch);
+
 #endif
 
 #ifdef __cplusplus
