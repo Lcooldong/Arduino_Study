@@ -1,4 +1,5 @@
-#define LED_BUILTIN   PC6
+// #define LED_BUILTIN   PC6
+#define LED_BUILTIN   PC13
 #define LED_INTERVAL  100
 
 uint32_t lastMillis[2] = {0,};

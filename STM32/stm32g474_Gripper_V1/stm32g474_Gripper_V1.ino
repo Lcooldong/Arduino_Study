@@ -11,8 +11,9 @@
 #define I2C1_SDA          PB7
 #define I2C1_SCL          PA15
 
-#define LED_BUILTIN       PC6
-#define CAN_CH            _DEF_CAN1         
+// #define LED_BUILTIN       PC6  // stm32g474ceu6
+#define LED_BUILTIN       PC13    // stm32g474cet6
+#define CAN_CH            _DEF_CAN1
 
 #define LED_PIN           PB6
 #define NUMPIXELS         23
@@ -49,6 +50,15 @@ enum
   DXL_TARGET    = 0x04,
   
 }status_t;
+
+enum
+{
+  REQUEST           = 0x01,
+  RESPONSE          = 0x02,
+  MOTOR_DXL_RUN     = 0x03,
+  MOTOR_DXL_ARRIVED = 0x04,
+  STOP              = 0xFF,
+}cmd_state_t;
 
 
 typedef struct __attribute__((packed))
@@ -95,14 +105,29 @@ typedef struct __attribute__((packed))
   led_color_t  colors;         // 4
 }led_t;
 
+typedef struct __attribute__((packed))
+{
+  uint8_t count;
+  uint8_t command;
+
+}cmd_t; 
+
+typedef struct __attribute__((packed))
+{
+  uint8_t h_crc;
+  uint8_t l_crc;
+
+}crc_t; 
 
 
 typedef struct __attribute__((packed))
 {
-  dxl_t    dxl;             // 6
-  lsv_t    lsv;             // 9
-  ads_t    hallSensor;      // 8
-  led_t    led;             // 5
+  cmd_t    cmd;             // 2   1~2
+  dxl_t    dxl;             // 6   3~8
+  lsv_t    lsv;             // 9   9~17
+  ads_t    hallSensor;      // 8   18~25
+  led_t    led;             // 5   26~30
+  crc_t    crc;             // 2   31~32 
 
 }gripper_t;
 
@@ -123,7 +148,7 @@ ads_t myADS;
 
 uint32_t serialLastTime = 0;
 uint32_t curMillis = 0;
-uint32_t lastMillis[4] = {0,};
+uint32_t lastMillis[8] = {0,};
 bool led_state = false;
 uint32_t led_value =0;
 uint8_t led_direction = 0;
@@ -177,8 +202,14 @@ void setup() {
 
   ads1115_init();
   motor_init();
+
+  // Init Packet
+  myGripper->cmd.count = 0;       // up when changed
+  myGripper->cmd.command = 0xFF;
   myGripper->hallSensor.toggleSwitch = false;
   myGripper->led.ledSwitch = false;
+  myGripper->crc.h_crc = 0xAA;    // CAN 에서는 반대로 보임 55 AA
+  myGripper->crc.l_crc = 0x55;
 
   uint8_t colorGreen[3] = {0, 255, 0};
   led_setColor(colorGreen, 5);
@@ -192,59 +223,66 @@ void setup() {
 void loop() {
   curMillis = millis();
 
-  serialCommand();
-  canReceive(CAN_CH);
+  
 
-  switch (select_mode) {
-    case ADS_MODE:
-    
-    break;
-  }
-
-  // // MOTOR
-  if(curMillis - lastMillis[0] >= 100)
+  if(curMillis - lastMillis[0] >= 2)
   {
+    serialCommand();
     lastMillis[0] = curMillis;
+    canReceive(CAN_CH);
+  }
+  
+  // // MOTOR
+  if(curMillis - lastMillis[1] >= 100 && myGripper->cmd.command == MOTOR_DXL_RUN)
+  {
+    lastMillis[1] = curMillis;
 
     if(myGripper->dxl.status >= CONNECTED)
     {
       dxl.setGoalPosition(DXL_ID, myGripper->dxl.position);
       // Serial.printf("0x%02X\r\n", myGripper->dxl.position);
-    }
-  
-    if(myGripper->lsv.status >= CONNECTED)
-    {
-      lsv.GoalPosition(LSV_ID, myGripper->lsv.position);
-      // Serial.printf("0x%02X\r\n", myGripper->lsv.position);
-    }
+      uint8_t offset = 2;
+      float currentPosition = dxl.getPresentPosition(DXL_ID);
+      Serial.printf("DXL: %0.2f -> %d\r\n",  currentPosition, myGripper->dxl.position);
+      // int currentLSVPosition = lsv.presentPosition(LSV_ID);
+      // Serial.printf("%d -> %d\r\n", currentLSVPosition, myGripper->dxl.position);
+      if( currentPosition + offset >= myGripper->dxl.position && currentPosition - offset <= myGripper->dxl.position )
+      {
+        Serial.printf("DXL Target Arrived\r\n");
+        myGripper->cmd.command = MOTOR_DXL_ARRIVED;
+      }
+    }  
   }
-  else   // Toque off
+  else if( curMillis - lastMillis[1] >= 100 && myGripper->cmd.command == MOTOR_DXL_ARRIVED)
   {
-    // Serial.printf("Toque Off\r\n");
+    lastMillis[1] = curMillis;
+    lsv.GoalPosition(LSV_ID, myGripper->lsv.position);
   }
 
 
   // HALL SENSOR
-  if((curMillis - lastMillis[1] >= 100) && myGripper->hallSensor.toggleSwitch && myGripper->hallSensor.status)
+  if((curMillis - lastMillis[2] >= 50) && myGripper->hallSensor.toggleSwitch && myGripper->hallSensor.status)
   {
-    lastMillis[1] = curMillis;
+    lastMillis[2] = curMillis;
     myGripper->hallSensor.voltage = adc.getResult_V();
     myGripper->hallSensor.raw = adc.getRawResult();
     if(myGripper->hallSensor.raw != 0)
     {
+      // myGripper->cmd.command = REQUEST;
       Serial.printf("Result => %0.2f [%d]\r\n", myGripper->hallSensor.voltage, myGripper->hallSensor.raw);
+      
     }
   }
-  else if(!myGripper->hallSensor.toggleSwitch || !myGripper->hallSensor.status)
+  else if(myGripper->hallSensor.toggleSwitch == false || myGripper->hallSensor.status == false)
   {
     myGripper->hallSensor.voltage = 0.0;
     myGripper->hallSensor.raw = 0;
   }
 
   // INDICATOR
-  if(curMillis - lastMillis[2] >= 1000)
+  if(curMillis - lastMillis[3] >= 1000)
   {
-    lastMillis[2] = curMillis;
+    lastMillis[3] = curMillis;
     digitalWrite(LED_BUILTIN, led_state);
     led_state = !led_state;
 
@@ -254,16 +292,18 @@ void loop() {
       led_setColor(lightOff, 0);
     }
 
-    // Serial.printf("DXL:%d[%d]| LSV:0x%02X[%d]| HALL:%d| %02X,%02X,%02X \r\n", 
-    // myGripper->dxl.status, 
-    // myGripper->dxl.position,
-    // myGripper->lsv.status, 
-    // myGripper->lsv.position,
-    // myGripper->hallSensor.status, 
-    // myGripper->led.colors.pixelColor.red,
-    // myGripper->led.colors.pixelColor.green,
-    // myGripper->led.colors.pixelColor.blue,
-    // );
+    Serial.printf("DXL:%d[%d]| LSV:0x%02X[%d]| HALL:%d[%d]| [%d] %02X,%02X,%02X \r\n", 
+    myGripper->dxl.status, 
+    myGripper->dxl.position,
+    myGripper->lsv.status, 
+    myGripper->lsv.position,
+    myGripper->hallSensor.status,
+    myGripper->hallSensor.raw,
+    myGripper->led.ledSwitch,
+    myGripper->led.colors.pixelColor.red,
+    myGripper->led.colors.pixelColor.green,
+    myGripper->led.colors.pixelColor.blue
+    );
     
     RCC_PeriphCLKInitTypeDef clkconf;
     // RCC_PeriphCLKFreqTypeDef clkfreq;
@@ -271,14 +311,43 @@ void loop() {
     HAL_RCCEx_GetPeriphCLKConfig(&clkconf);
     clkconf.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
 
-    Serial.printf("%d | %d | %d | %d  %d\r\n", 
-    HAL_RCC_GetSysClockFreq(),
-    HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_FDCAN),
-    // __HAL_RCC_GET_SYSCLK_SOURCE()==RCC_SYSCLKSOURCE_STATUS_PLLCLK?"PLL":"NOT",
-    RCC_SYSCLKSOURCE_STATUS_HSE,
-    GetFdcanBaudRate(CAN_CH),
-    GetFdcanDataPhaseBaudRate(CAN_CH)
-    );
+    // Serial.printf("%d | %d | %d | %d  %d\r\n", 
+    // HAL_RCC_GetSysClockFreq(),
+    // HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_FDCAN),
+    // // __HAL_RCC_GET_SYSCLK_SOURCE()==RCC_SYSCLKSOURCE_STATUS_PLLCLK?"PLL":"NOT",
+    // RCC_SYSCLKSOURCE_STATUS_HSE,
+    // GetFdcanBaudRate(CAN_CH),
+    // GetFdcanDataPhaseBaudRate(CAN_CH)
+    // );
+
+
+
+
+  }
+
+  // LED
+  if(myGripper->led.ledSwitch == CONNECTED)
+  {
+    // uint8_t lightOn[3] = {255, 255, 255};
+    // led_setColor(lightOn, 20);
+    led_setColorArray(myGripper->led.colors.pixelColorArray);
+  }
+
+    // RECONNECT
+  if(curMillis - lastMillis[4] >= 2000)
+  {
+    lastMillis[4] = curMillis;
+    if(myGripper->dxl.status == false)
+    {
+      motor_reconnect();
+    }
+    myGripper->hallSensor.status = i2cReconnect(DEVICE_ADDRESS);
+  }
+
+
+  if(curMillis - lastMillis[5]  >= 20)
+  {
+    lastMillis[5] = curMillis;
 
     can_msg_t msg;
     
@@ -289,25 +358,27 @@ void loop() {
     msg.length  = 32;
 
     memcpy(msg.data, packet.datas, sizeof(gripper_t));
+    // msg.data[29] = 11;
+    // msg.data[30] = 12;
+    // msg.data[31] = 13;
+
     // for (int i=0; i < msg.length; i++) {
     //   msg.data[i] = i;
     // }
-    canSend(CAN_CH, msg);
-  }
+    // canSend(CAN_CH, msg);
+    switch (myGripper->cmd.command)
+    {
+      case REQUEST:
+      case MOTOR_DXL_RUN:
+      case MOTOR_DXL_ARRIVED:
+        // myGripper->cmd.command = RESPONSE;
+        canSend(CAN_CH, msg);
+        break;
 
-  if(myGripper->led.ledSwitch == CONNECTED)
-  {
-    uint8_t lightOn[3] = {255, 255, 255};
-    led_setColor(lightOn, 20);
-  }
-
-
-  // RECONNECT
-  if(curMillis - lastMillis[3] >= 2000)
-  {
-    lastMillis[3] = curMillis;
-    motor_reconnect();
-    myGripper->hallSensor.status = i2cReconnect(DEVICE_ADDRESS);
+      case STOP:
+        // Serial.printf("Not Send CAN Data\r\n");
+        break;
+    }
   }
 
 }
@@ -392,6 +463,20 @@ void canReceive(uint8_t ch)
     can_msg_t msg;
 
     canMsgRead(ch, &msg);
+  
+    if(myGripper->cmd.command != msg.data[1])
+    {
+      myGripper->cmd.command = msg.data[1];
+      myGripper->cmd.count++;
+      
+    }
+    else  // same command
+    {
+
+    }
+    memcpy(packet.datas, msg.data, sizeof(gripper_t));  // 
+    
+    // CRC 계산
 
     can_index %= 1000;
     Serial.printf("ch %d %03d(R) <- id ",ch, can_index++);
@@ -605,7 +690,7 @@ bool motor_reconnect()
 
   if(lsv_state != 0x00)
   {
-    Serial.printf("LSV Once Connected 0x%02X\r\n", lsv_state);
+    // Serial.printf("LSV Once Connected 0x%02X\r\n", lsv_state);
   }
   else
   {
@@ -657,6 +742,19 @@ void led_setColor(uint8_t color[3], uint8_t brightness)
   }
   memcpy(myGripper->led.colors.pixelColorArray, color, sizeof(color));
   myGripper->led.colors.pixelColor.brightness  = brightness;
+
+  pixels.show();
+}
+
+
+void led_setColorArray(uint8_t color[4])
+{
+  pixels.setBrightness(color[3]);
+  for (int i=0; i<NUMPIXELS; i++) {
+    pixels.setPixelColor(i, pixels.Color(color[0], color[1], color[2]));
+  }
+  memcpy(myGripper->led.colors.pixelColorArray, color, sizeof(color));
+  myGripper->led.colors.pixelColor.brightness = color[3];
 
   pixels.show();
 }
