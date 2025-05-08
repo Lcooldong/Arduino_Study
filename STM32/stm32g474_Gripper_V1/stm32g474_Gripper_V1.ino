@@ -57,7 +57,7 @@ enum
   RESPONSE          = 0x02,
   MOTOR_DXL_RUN     = 0x03,
   MOTOR_DXL_ARRIVED = 0x04,
-  STOP              = 0xFF,
+  STOP              = 0x05,
 }cmd_state_t;
 
 
@@ -508,7 +508,7 @@ void canReceive(uint8_t ch)
   if (tx_err_cnt != canGetTxErrCount(ch) ||
       rx_err_cnt != canGetRxErrCount(ch))
   {
-    Serial.printf("ch %d ErrCnt : R %d, T %d\n", ch, canGetRxErrCount(ch), canGetTxErrCount(ch));
+    Serial.printf("ch %d ErrCnt : R %d, T %d\r\n", ch, canGetRxErrCount(ch), canGetTxErrCount(ch));
   }
   tx_err_cnt = canGetTxErrCount(ch);
   rx_err_cnt = canGetRxErrCount(ch);
@@ -516,7 +516,7 @@ void canReceive(uint8_t ch)
 
   if (canUpdate())
   {
-    Serial.printf("ch %d BusOff Recovery\n", ch);
+    Serial.printf("ch %d BusOff Recovery\r\n", ch);
   }    
 }
 
