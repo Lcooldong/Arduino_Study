@@ -23,7 +23,7 @@
 
 #define _USE_HW_CAN
 #define      HW_CAN_MAX_CH          1
-#define      HW_CAN_MSG_RX_BUF_MAX  32
+#define      HW_CAN_MSG_RX_BUF_MAX  128
 
 
 

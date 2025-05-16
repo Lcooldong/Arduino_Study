@@ -16,30 +16,55 @@ typedef struct
 } can_baud_cfg_t;
 
 const can_baud_cfg_t can_baud_cfg_80m_normal[] =
-    {
-        {50, 8, 13, 2}, // 100K, 87.5%
-        {40, 8, 13, 2}, // 125K, 87.5%
-        {20, 8, 13, 2}, // 250K, 87.5%
-        {10, 8, 13, 2}, // 500K, 87.5%
-        {5,  8, 13, 2}, // 1M,   87.5%
-    };
+{
+    {50, 8, 13, 2}, // 100K, 87.5%
+    {40, 8, 13, 2}, // 125K, 87.5%
+    {20, 8, 13, 2}, // 250K, 87.5%
+    {10, 8, 13, 2}, // 500K, 87.5%
+    {5,  8, 13, 2}, // 1M,   87.5%
+};
 
 const can_baud_cfg_t can_baud_cfg_80m_data[] =
-    {
-        {40, 8, 11, 8}, // 100K, 60%
-        {32, 8, 11, 8}, // 125K, 60%
-        {16, 8, 11, 8}, // 250K, 60%
-        {8,  8, 11, 8}, // 500K, 60%
-        {4,  8, 11, 8}, // 1M,   60%
-        {2,  8, 11, 8}, // 2M    60%
-        {1,  8, 11, 8}, // 4M    60%
-        {1,  8,  9, 6}, // 5M    62.5%
-    };
+{
+    {40, 8, 11, 8}, // 100K, 60%
+    {32, 8, 11, 8}, // 125K, 60%
+    {16, 8, 11, 8}, // 250K, 60%
+    {8,  8, 11, 8}, // 500K, 60%
+    {4,  8, 11, 8}, // 1M,   60%
+    {2,  8, 11, 8}, // 2M    60%
+    {1,  8, 11, 8}, // 4M    60%
+    {1,  8,  9, 6}, // 5M    62.5%
+};
 
 
-const can_baud_cfg_t *p_baud_normal = can_baud_cfg_80m_normal;
-const can_baud_cfg_t *p_baud_data   = can_baud_cfg_80m_data;
+const can_baud_cfg_t can_baud_cfg_150m_normal[] =
+{
+    {50, 8, 13, 2}, // 100K, 87.5%
+    {40, 8, 13, 2}, // 125K, 87.5%
+    {75, 8, 6, 1},  // 250K, 87.5% <-
+    {20, 8, 12, 2}, // 500K, 87.5%
+    {5,  8, 13, 2}, // 1M,   87.5%
+};
 
+const can_baud_cfg_t can_baud_cfg_150m_data[] =
+{
+    {40, 8, 11, 8}, // 100K, 60%
+    {32, 8, 11, 8}, // 125K, 60%
+    {16, 8, 11, 8}, // 250K, 60%
+    {8,  8, 11, 8}, // 500K, 60%
+    {4,  8, 11, 8}, // 1M,   60%
+    {5,  8, 9, 5},  // 2M    60%  <-
+    {1,  8, 11, 8}, // 4M    60%
+    {1,  8,  9, 6}, // 5M    62.5%
+};
+
+
+
+// const can_baud_cfg_t *p_baud_normal = can_baud_cfg_80m_normal;
+// const can_baud_cfg_t *p_baud_data   = can_baud_cfg_80m_data;
+
+const can_baud_cfg_t *p_baud_normal = can_baud_cfg_150m_normal;
+const can_baud_cfg_t *p_baud_data   = can_baud_cfg_150m_data;
 
 const uint32_t dlc_len_tbl[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64};
 
@@ -176,10 +201,11 @@ bool canInitRCC(void)
 
   RCC_OscInitTypeDef RCC_OscInitStruct = {};
 
-
+  
   HAL_RCC_GetOscConfig(&RCC_OscInitStruct);
 
   RCC_OscInitStruct.PLL.PLLN = 40; // 85
+  
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) 
   {
     ret = false;
@@ -209,13 +235,13 @@ bool canOpen(uint8_t ch, CanMode_t mode, CanFrame_t frame, CanBaud_t baud, CanBa
   if (ch >= CAN_MAX_CH) return false;
 
 
-  p_can = &can_tbl[ch].hfdcan;
+  p_can = &can_tbl[ch].hfdcan; 
 
   switch(ch)
   {
     case _DEF_CAN1:
       p_can->Instance                   = FDCAN2;
-      p_can->Init.ClockDivider          = FDCAN_CLOCK_DIV1;
+      p_can->Init.ClockDivider          = FDCAN_CLOCK_DIV1;//
       p_can->Init.FrameFormat           = frame_tbl[frame];
       p_can->Init.Mode                  = mode_tbl[mode];
       p_can->Init.AutoRetransmission    = DISABLE;
@@ -977,56 +1003,62 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle)
   }
 }
 
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-#ifdef USBCON
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {};
-#endif
+// void SystemClock_Config(void)
+// {
+// #ifdef USBCON
+//   RCC_PeriphCLKInitTypeDef PeriphClkInit = {};
+// #endif
 
-  /* Configure the main internal regulator output voltage */
-  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
-  /* Initializes the CPU, AHB and APB busses clocks */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSE
-                              |RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-  // RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  // RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  // RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
-  RCC_OscInitStruct.PLL.PLLN = 40; // 85
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV4;
-  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-    Error_Handler();
-  }
-  /* Initializes the CPU, AHB and APB busses clocks */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-                                | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+//   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+//   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_8) != HAL_OK) {
-    Error_Handler();
-  }
+//   /** Configure the main internal regulator output voltage
+//   */
+//   HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
 
-#ifdef USBCON
-  /* Initializes the peripherals clocks */
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
-  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
-    Error_Handler();
-  }
-#endif
-}
+//   /** Initializes the RCC Oscillators according to the specified parameters
+//   * in the RCC_OscInitTypeDef structure.
+//   */
+//   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSI
+//                               |RCC_OSCILLATORTYPE_HSE;
+//   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+//   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+//   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+//   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+//   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+//   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
+//   RCC_OscInitStruct.PLL.PLLN = 40;
+//   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+//   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV4;
+//   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
+//   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+//   {
+//     Error_Handler();
+//   }
+
+//   /** Initializes the CPU, AHB and APB buses clocks
+//   */
+//   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+//                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+//   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+//   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+//   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+//   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+//   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+//   {
+//     Error_Handler();
+//   }
+
+// #ifdef USBCON
+//   /* Initializes the peripherals clocks */
+//   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
+//   PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;
+//   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+//     Error_Handler();
+//   }
+// #endif
+// }
 
 uint32_t GetFdcanBaudRate(uint8_t ch)
 {
