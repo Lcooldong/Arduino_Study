@@ -341,6 +341,7 @@ void loop() {
 
     sendGripper->cmd.count = recvGripper->cmd.count;
     sendGripper->cmd.command = REQUEST + 0x01;
+    sendGripper->lsv.position = lsv.presentPosition(LSV_ID);
     sendGripper->crc = calcCRCSimple(recvGripper->cmd.count, sendGripper->cmd.command);
     memcpy(msg.data, sendPacket.datas, sizeof(gripper_t));
 
