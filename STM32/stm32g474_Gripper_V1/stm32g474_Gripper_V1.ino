@@ -31,7 +31,7 @@
 #define DXL_MAX_POSITION      4095
 #define DXL_TARGET_POSITION   3397
 #define DXL_SUB_POSITION      2600
-#define DXL_INITIAL_POSITION  2047
+#define DXL_INITIAL_POSITION  2000
 
 #define LSV_ID                  0
 #define LSV_BAUDRATE            32
@@ -67,7 +67,8 @@ enum
   LED_ON            = 0x09,
   LED_OFF           = 0x0A,
   CAN_START         = 0x1F,
-  CAN_STOP          = 0x0F
+  CAN_STOP          = 0x0F,
+  RESTART           = 0x2F
 }cmd_state_t;
 
 typedef struct __attribute__((packed))
@@ -154,6 +155,7 @@ bool dxlFlag     = false;
 bool lsvFlag     = false;
 bool hallFlag    = false;
 bool ledFlag     = false;
+bool restart     = false;
 
 
 uint32_t serialLastTime = 0;
@@ -249,6 +251,9 @@ bool myCanCallback(uint8_t ch, CanEvent_t evt, can_msg_t *msg)
       case LED_OFF:
         ledFlag = false;
         break;
+      case RESTART:
+        restart = true;
+        break;
     }
     
     
@@ -302,31 +307,33 @@ void setup() {
   uint8_t colorGreen[3] = {0, 255, 0};
   led_setColor(colorGreen, 5);
   
-  canAttachRxInterrupt(CAN_CH, myCanCallback);   // Callback
+  // canAttachRxInterrupt(CAN_CH, myCanCallback);   // Callback
 
   delay(1000);
-  
+  Serial.printf("Start Program\r\n");
   pixels.clear();
   pixels.show();
 
   // // CAN PING
-  // can_msg_t msg;
+  can_msg_t msg;
     
-  // msg.frame   = CAN_FD_NO_BRS;
-  // msg.id_type = CAN_STD;
-  // msg.dlc     = CAN_DLC_24;
-  // msg.id      = 0x0FF;
-  // msg.length  = 24;
-  // Serial.println("send CAN 5");
-  // memcpy(msg.data, sendPacket.datas, sizeof(gripper_t));
-  // canSend(CAN_CH, msg);
+  msg.frame   = CAN_FD_NO_BRS;
+  msg.id_type = CAN_STD;
+  msg.dlc     = CAN_DLC_24;
+  msg.id      = 0x0FF;
+  msg.length  = 24;
+  Serial.println("send CAN 5");
+  memcpy(msg.data, sendPacket.datas, sizeof(gripper_t));
+  canSend(CAN_CH, msg);
 }
 
-extern const button_pin_t button_pin[BUTTON_MAX_CH];
+
 
 void loop() {
   curMillis = millis();
-  // canReceive(CAN_CH);
+  canReceive(CAN_CH);
+
+
   if(requestFlag)
   {
     can_msg_t msg;
@@ -342,6 +349,7 @@ void loop() {
     sendGripper->cmd.count = recvGripper->cmd.count;
     sendGripper->cmd.command = REQUEST + 0x01;
     sendGripper->lsv.position = lsv.presentPosition(LSV_ID);
+    lsv.ledOn(LSV_ID, GREEN);
     sendGripper->crc = calcCRCSimple(recvGripper->cmd.count, sendGripper->cmd.command);
     memcpy(msg.data, sendPacket.datas, sizeof(gripper_t));
 
@@ -361,6 +369,7 @@ void loop() {
     if(sendGripper->dxl.status >= CONNECTED)
     {
       dxl.setGoalPosition(DXL_ID, recvGripper->dxl.position);
+      
       Serial.printf("Target DXL: %4d\r\n", recvGripper->dxl.position);
     }
     else
@@ -383,7 +392,7 @@ void loop() {
   }
 
   // HALL SENSOR
-  if((curMillis - lastMillis[1] >= 30) && hallFlag)
+  if((curMillis - lastMillis[1] >= 50) && hallFlag)
   {
     lastMillis[1] = curMillis;
     sendGripper->hall.raw = adc.getRawResult();
@@ -485,7 +494,15 @@ void loop() {
       sendGripper->hall.status = i2cReconnect(DEVICE_ADDRESS);
 
       uint8_t offset = 3;
-      
+      // float current = dxl.getPresentCurrent(DXL_ID);
+      // if(current > 2000)
+      // {
+      //   dxl.torqueOff(DXL_ID);
+      // }
+      // else
+      // {
+      //   dxl.torqueOn(DXL_ID);
+      // }
       // float currentDXLPosition = dxl.getPresentPosition(DXL_ID);
       if(sendGripper->dxl.position + offset >= recvGripper->dxl.position && sendGripper->dxl.position - offset <= recvGripper->dxl.position)
       {
@@ -661,16 +678,50 @@ void canReceive(uint8_t ch)
 
     canMsgRead(ch, &msg);
   
-    if(recvGripper->cmd.command != msg.data[1])
-    {
-      recvGripper->cmd.command = msg.data[1];      
-    }
-    else  // same command
-    {
+    // if(recvGripper->cmd.command != msg.data[1])
+    // {
+    //   recvGripper->cmd.command = msg.data[1];      
+    // }
+    // else  // same command
+    // {
 
-    }
+    // }
     memcpy(recvPacket.datas, msg.data, sizeof(gripper_t));  // 
     
+    switch (recvGripper->cmd.command) {
+      case CAN_START:
+        canFlag = true;
+        break;
+      case CAN_STOP:
+        canFlag = false;
+        break;
+      case REQUEST:
+        requestFlag = true;
+        break;
+      case  MOTOR_DXL_RUN:
+        dxlFlag = true;
+        break;
+      case MOTOR_LSV_RUN:
+        lsvFlag = true;
+        break;
+      case HALL_SENSOR_RUN:
+        hallFlag = true;
+        break;
+      case HALL_SENSOR_STOP:
+        hallFlag = false;
+        break;
+      case LED_ON:
+        ledFlag = true;
+        break;
+      case LED_OFF:
+        ledFlag = false;
+        break;
+      case RESTART:
+        restart = true;
+        break;
+    }
+    recvGripper->cmd.command = 0;
+
     // CRC 계산
 
     can_index %= 1000;
@@ -790,7 +841,8 @@ bool motor_init()
     Serial.println("Motor Begin");
     sendGripper->dxl.position = DXL_INITIAL_POSITION;
     sendGripper->lsv.position = LINEAR_INITIAL_POSITION;
-    // dxl.setGoalPosition(DXL_ID, myGripper->dxl.position);
+
+    dxl.setGoalPosition(DXL_ID, sendGripper->dxl.position);
   }
   else
   {
