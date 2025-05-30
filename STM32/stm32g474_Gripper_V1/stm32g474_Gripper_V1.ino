@@ -524,7 +524,7 @@ void loop() {
         }
         // Serial.printf("DXL:%0.2f->%d | LSV:%d->%d\r\n",  sendGripper->dxl.position, recvGripper->dxl.position, sendGripper->lsv.position, recvGripper->lsv.position);
 
-        // Serial.printf("%d %d \r\n ", GetFdcanBaudRate(CAN_CH), GetFdcanDataPhaseBaudRate(CAN_CH));
+        // Serial.printf("CAN => %d %d \r\n ", GetFdcanBaudRate(CAN_CH), GetFdcanDataPhaseBaudRate(CAN_CH));
       }
 
       // can_msg_t msg;

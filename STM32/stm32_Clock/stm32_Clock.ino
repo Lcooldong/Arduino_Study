@@ -2,7 +2,7 @@
 
 // #define HSE_VALUE ((uint32_t)8000000U)
 // #define HAL_FDCAN_MODULE_ENABLED
-#define BUILTIN_LED PC13
+#define BUILTIN_LED PC13 //STM32G474CET6 -> Weact G474CE 로 실행가능
 // #define BUILTIN_LED PC6
 
 uint32_t currentMiilis = 0;
@@ -59,7 +59,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLN = 40;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV4;
-  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV6;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
