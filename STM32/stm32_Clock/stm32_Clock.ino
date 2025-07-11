@@ -3,8 +3,10 @@
 // #define HSE_VALUE ((uint32_t)8000000U)
 // #define HAL_FDCAN_MODULE_ENABLED
 
+
 #define BUILTIN_LED PC13 //STM32G474CET6 -> Weact G474CE 로 실행가능
 // #define BUILTIN_LED PC6
+
 
 
 uint32_t currentMiilis = 0;
