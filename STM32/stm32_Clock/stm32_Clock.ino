@@ -2,8 +2,10 @@
 
 // #define HSE_VALUE ((uint32_t)8000000U)
 // #define HAL_FDCAN_MODULE_ENABLED
+
 #define BUILTIN_LED PC13 //STM32G474CET6 -> Weact G474CE 로 실행가능
 // #define BUILTIN_LED PC6
+
 
 uint32_t currentMiilis = 0;
 uint32_t lastMillis = 0;
@@ -25,7 +27,7 @@ void loop() {
   {
     lastMillis  = currentMiilis;
     count++;
-    Serial.printf("[%04d] %d MHz| %d MHz| %s | %d MHz| %d MHz| %d\r\n", 
+    Serial.printf("[%04d] %d MHz| %d MHz| %s | %d MHz| %d MHz| [Time:%d]\r\n", 
       count, HAL_RCC_GetSysClockFreq() / 1000000,
       RCC_SYSCLKSOURCE_STATUS_HSE,
       __HAL_RCC_GET_SYSCLK_SOURCE()==RCC_SYSCLKSOURCE_STATUS_PLLCLK?"PLL":"NOT"
@@ -37,7 +39,7 @@ void loop() {
   }
 }
 
-
+// WeactG474 는 160MHz 로 동작  -> pF capacitor check 필요
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
