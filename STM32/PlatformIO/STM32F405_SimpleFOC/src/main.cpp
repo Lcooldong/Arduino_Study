@@ -1,6 +1,15 @@
 #include <Arduino.h>
 #include <SimpleFOC.h>
 
+#define DEBUG
+
+#ifdef DEBUG
+#include <OneButton.h>
+#define LED_BUILTIN PB2 // LED on board
+
+
+#endif
+
 // magnetic sensor instance - SPI
 #define CS       PB2  // PA15?
 #define SPI_SCK  PC10 // SPI3_SCK
@@ -59,54 +68,71 @@ void doMotor(char* cmd) {
   //command.motion(&motor, cmd);
 }
 
+
+#ifdef DEBUG
+OneButton button;
+
+void buttonClick() {
+  Serial.println("Button Clicked!");
+}
+#endif
+
 void setup() {
   Serial.begin(115200);
   Serial.println("SimpleFOC STM32F405 Example");
-  sensor.init(&SPI_3);
-  motor.linkSensor(&sensor);
-
-  driver.pwm_frequency = 20000;        // 20kHz
-  driver.voltage_power_supply = 24.0f; // 24V
-  driver.voltage_limit = 56.0f;        // 56V
+#ifdef DEBUG
+  pinMode(LED_BUILTIN, OUTPUT);
+  // pinMode(PC13, INPUT_PULLDOWN); // Button
+  button.setup(PC13, INPUT_PULLDOWN, false);
+  button.attachClick(buttonClick);
+#endif
   
-  driver.init();
-  motor.linkDriver(&driver);
 
-  motor.torque_controller = TorqueControlType::foc_current; // Use FOC current control
-  motor.controller = MotionControlType::angle; // Use angle control
-  motor.foc_modulation = FOCModulationType::SinePWM; // Use Sine PWM modulation 
-  motor.modulation_centered = true; // Center modulation
+  // sensor.init(&SPI_3);
+  // motor.linkSensor(&sensor);
 
-  motor.PID_velocity.P = 2.0f; // Velocity controller P gain
-  motor.PID_velocity.I = 30.0f; // Velocity controller I gain
-  motor.PID_velocity.D = 0.001f; // Velocity controller D gain
-  motor.PID_velocity.output_ramp = 1000.0f; // Velocity controller output ramp
-  motor.LPF_velocity.Tf = 0.01f; // Velocity controller low pass filter time
+  // driver.pwm_frequency = 20000;        // 20kHz
+  // driver.voltage_power_supply = 24.0f; // 24V
+  // driver.voltage_limit = 56.0f;        // 56V
+  
+  // driver.init();
+  // motor.linkDriver(&driver);
+
+  // motor.torque_controller = TorqueControlType::foc_current; // Use FOC current control
+  // motor.controller = MotionControlType::angle; // Use angle control
+  // motor.foc_modulation = FOCModulationType::SinePWM; // Use Sine PWM modulation 
+  // motor.modulation_centered = true; // Center modulation
+
+  // motor.PID_velocity.P = 2.0f; // Velocity controller P gain
+  // motor.PID_velocity.I = 30.0f; // Velocity controller I gain
+  // motor.PID_velocity.D = 0.001f; // Velocity controller D gain
+  // motor.PID_velocity.output_ramp = 1000.0f; // Velocity controller output ramp
+  // motor.LPF_velocity.Tf = 0.01f; // Velocity controller low pass filter time
 
 
 
-  SimpleFOCDebug::enable(&Serial2);
-  motor.init();
-  currentSense.linkDriver(&driver);
-  if(currentSense.init() == 0) {
-    Serial2.println("Current sense init failed!");
-  } else {
-    Serial2.println("Current sense init success!");
-  }
+  // SimpleFOCDebug::enable(&Serial2);
+  // motor.init();
+  // currentSense.linkDriver(&driver);
+  // if(currentSense.init() == 0) {
+  //   Serial2.println("Current sense init failed!");
+  // } else {
+  //   Serial2.println("Current sense init success!");
+  // }
 
-  currentSense.skip_align = true; // Skip the alignment phase
-  motor.linkCurrentSense(&currentSense);
+  // currentSense.skip_align = true; // Skip the alignment phase
+  // motor.linkCurrentSense(&currentSense);
 
-  motor.initFOC();
-  command.decimal_places = 4; // Set number of decimal places for command output
-  command.add('M', doMotor, "motor exemple ==> M10");
-  motor.target = 0;
-  if (motor.motor_status != 4) { // 0 - fail initFOC
-    Serial2.println("ERROR:" + String(motor.motor_status));
-    //return;
-  }
+  // motor.initFOC();
+  // command.decimal_places = 4; // Set number of decimal places for command output
+  // command.add('M', doMotor, "motor exemple ==> M10");
+  // motor.target = 0;
+  // if (motor.motor_status != 4) { // 0 - fail initFOC
+  //   Serial2.println("ERROR:" + String(motor.motor_status));
+  //   //return;
+  // }
 
-  delay(1000);
+  // delay(1000);
 }
 
 void loop() {
@@ -129,11 +155,18 @@ void loop() {
   if(currentMillis - previousMillis[0] >= 500) {
     previousMillis[0] = currentMillis;
     counter++;
-    Serial.printf("[%d]\r\n", counter);
-
+    Serial.printf("[%d] %d :%d\r\n", counter, HSE_VALUE, digitalRead(PC13));
+#ifdef DEBUG
+    digitalWrite(LED_BUILTIN, ledState);
+#endif
     ledState = !ledState;
   
   }
+  else if(currentMillis - previousMillis[1] >= 10) {
+    previousMillis[1] = currentMillis;
+    button.tick(); // Check button state
+  }
+  
 
 
   // motor.loopFOC();
