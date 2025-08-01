@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SimpleFOC.h>
 
+
 #define DEBUG
 
 #ifdef DEBUG
@@ -34,7 +35,7 @@
 #define EN_GATE PB12
 
 //Pole pair
-#define PP 11
+#define PP 14
 
 //Temp
 #define M0_TEMP PC5
@@ -42,6 +43,7 @@
 // GPIO_3, GPIO_4
 #define USART2_TX PA2 // TX
 #define USART2_RX PA3 // RX
+
 
 
 uint32_t currentMillis = 0;
@@ -56,17 +58,24 @@ MagneticSensorSPI sensor = MagneticSensorSPI(CS, 14, 0x3FFF);
 
 HardwareSerial Serial2(USART2_RX, USART2_TX);
 Commander command = Commander(Serial2);
+Commander cmdDebug = Commander(Serial);
 SPIClass SPI_3(SPI_SCK, SPI_MISO, SPI_MOSI);
 
 PhaseCurrent_s current;
 float current_magnitude;
 float memory_max_current = motor.current_limit;
+float target_position = 0;
+
 
 void doMotor(char* cmd) {
   command.motor(&motor, cmd);
   //command.target(&motor, cmd); // ok
   //command.motion(&motor, cmd);
 }
+
+void doTarget(char* cmd) { command.scalar(&target_position, cmd); }
+void doLimit(char* cmd) { command.scalar(&motor.voltage_limit, cmd); }
+void doVelocity(char* cmd) { command.scalar(&motor.velocity_limit, cmd); }
 
 
 #ifdef DEBUG
@@ -87,7 +96,36 @@ void setup() {
   button.attachClick(buttonClick);
 #endif
   
+  SimpleFOCDebug::enable(&Serial);
+  driver.voltage_power_supply = 24;
+  driver.voltage_limit = 20;
 
+  if(!driver.init())
+  {
+    Serial.println("Driver init failed!");
+    return;
+  }
+  motor.linkDriver(&driver);
+  motor.voltage_limit = 24;
+  motor.velocity_limit = 10;
+  motor.current_limit = 1.0f;
+  motor.phase_resistance = 0.035;
+  motor.controller = MotionControlType::angle_openloop;
+
+  motor.useMonitoring(Serial);
+
+  if(!motor.init()){
+    Serial.println("Motor init failed!");
+    return;
+  }
+
+  command.add('T', doTarget, "target angle");
+  command.add('L', doLimit,  "voltage limit");
+  command.add('V', doLimit,  "movement velocity");
+
+  Serial.println("Motor ready!");
+  Serial.println("Set target position [rad]");
+  _delay(1000);
   // sensor.init(&SPI_3);
   // motor.linkSensor(&sensor);
 
@@ -155,7 +193,7 @@ void loop() {
   if(currentMillis - previousMillis[0] >= 500) {
     previousMillis[0] = currentMillis;
     counter++;
-    Serial.printf("[%d] %d :%d\r\n", counter, HSE_VALUE, digitalRead(PC13));
+    Serial.printf("[%d] %d\r\n", counter, HSE_VALUE);
 #ifdef DEBUG
     digitalWrite(LED_BUILTIN, ledState);
 #endif
@@ -166,7 +204,9 @@ void loop() {
     previousMillis[1] = currentMillis;
     button.tick(); // Check button state
   }
-  
+
+  motor.move(target_position);
+  command.run();
 
 
   // motor.loopFOC();
