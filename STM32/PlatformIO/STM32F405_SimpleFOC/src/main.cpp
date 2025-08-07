@@ -81,6 +81,7 @@ void doVelocity(char* cmd) { command.scalar(&motor.velocity_limit, cmd); }
 #ifdef DEBUG
 OneButton button;
 
+
 void buttonClick() {
   Serial.println("Button Clicked!");
 }
