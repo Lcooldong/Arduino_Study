@@ -111,7 +111,9 @@ void setup() {
   motor.velocity_limit = 10;
   motor.current_limit = 1.0f;
   motor.phase_resistance = 0.035;
-  motor.controller = MotionControlType::angle_openloop;
+  // motor.controller = MotionControlType::angle_openloop;
+  motor.controller = MotionControlType::angle;
+  motor.torque_controller = TorqueControlType::foc_current;
 
   motor.useMonitoring(Serial);
 
@@ -149,8 +151,6 @@ void setup() {
   // motor.LPF_velocity.Tf = 0.01f; // Velocity controller low pass filter time
 
 
-
-  // SimpleFOCDebug::enable(&Serial2);
   // motor.init();
   // currentSense.linkDriver(&driver);
   // if(currentSense.init() == 0) {
