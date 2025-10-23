@@ -15,7 +15,7 @@
 
 
 
-#else if KV340
+#elif KV340
 
 #define KV340_MAX_VOLTAGE   33
 #define KV340_MIN_VOLTAGE   22
