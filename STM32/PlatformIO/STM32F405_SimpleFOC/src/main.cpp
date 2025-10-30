@@ -44,8 +44,18 @@
 #define M0_TEMP PC5
 
 // GPIO_3, GPIO_4
-#define USART2_TX PA2 // TX
-#define USART2_RX PA3 // RX
+#define USART2_TX PA2 // TX GPIO_3
+#define USART2_RX PA3 // RX GPIO_4
+
+
+#define   _MON_TARGET 0b1000000  // monitor target value
+#define   _MON_VOLT_Q 0b0100000  // monitor voltage q value
+#define   _MON_VOLT_D 0b0010000  // monitor voltage d value
+#define   _MON_CURR_Q 0b0001000  // monitor current q value - if measured
+#define   _MON_CURR_D 0b0000100  // monitor current d value - if measured
+#define   _MON_VEL    0b0000010  // monitor velocity value
+#define   _MON_ANGLE  0b0000001  // monitor angle value
+
 
 
 
@@ -60,8 +70,8 @@ LowsideCurrentSense currentSense = LowsideCurrentSense(0.0005f, 10.0f, M0_IA, M0
 MagneticSensorSPI sensor = MagneticSensorSPI(CS, 14, 0x3FFF);
 
 HardwareSerial Serial2(USART2_RX, USART2_TX);
-// Commander command = Commander(Serial2);   // Serial for command interface
-Commander command = Commander(Serial);   // Serial for command interface
+Commander command = Commander(Serial2);   // Serial for command interface
+// Commander command = Commander(Serial);   // Serial for command interface
 // Commander cmdDebug = Commander(Serial);
 SPIClass SPI_3(SPI_SCK, SPI_MISO, SPI_MOSI);
 
@@ -95,6 +105,8 @@ void buttonClick() {
 void setup() {
   Serial.begin(115200);
   Serial.println("SimpleFOC STM32F405 Example");
+  Serial2.begin(115200);
+
 #ifdef DEBUG
   pinMode(LED_BUILTIN, OUTPUT);
   // pinMode(PC13, INPUT_PULLDOWN); // Button
@@ -123,6 +135,8 @@ void setup() {
   
 
   motor.useMonitoring(Serial);
+  motor.monitor_variables = _MON_TARGET | _MON_VEL | _MON_ANGLE; 
+  motor.monitor_downsample = 100;
 
   if(!motor.init()){
     Serial.println("Motor init failed!");
@@ -136,6 +150,7 @@ void setup() {
 
   Serial.println("Motor ready!");
   Serial.println("Set target position [rad]");
+  
   _delay(1000);
   // sensor.init(&SPI_3);
   // motor.linkSensor(&sensor);
@@ -213,11 +228,31 @@ void loop() {
     previousMillis[1] = currentMillis;
     button.tick(); // Check button state
   }
-
+  else if(currentMillis - previousMillis[2] >= 1) {
+    previousMillis[2] = currentMillis;
+    if(Serial2.available()) 
+    {
+      // int c = Serial2.read();
+      // Serial.printf("Received: %c\r\n", c);
+    }
+  }
+  else
+  {
+    motor.move(target_velocity);
+    command.run();
+    
+  }
   // motor.move(target_position);
-  motor.move(target_velocity);
-  command.run();
+  
+  
 
+  
+  
+    // command.run(Serial2);
+    
+
+    // Serial1.printf("Received: %c\r\n", c);
+  
 
   // motor.loopFOC();
   // current = currentSense.getPhaseCurrents();
