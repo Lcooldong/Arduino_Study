@@ -8,7 +8,8 @@
 #define KV170_MAX_VOLTAGE   58
 #define KV170_MIN_VOLTAGE   24
 #define KV170_VOLTAGE_LIMIT 48
-#define KV170_RESISTANCE    80 // 80mΩ
+#define KV170_INDUCTANCE    -12345.0f // Not set
+#define KV170_RESISTANCE    0.08 // 80mΩ
 #define KV170_POLE_PAIR     14
 
 
