@@ -57,41 +57,51 @@
 #define   _MON_ANGLE  0b0000001  // monitor angle value
 
 struct MotorParameters {
+  const char* name;
   float resistance;
   float inductance;
   float pole_pairs;
   float voltage_limit;
   float current_limit;
+  float default_velocity;
 };
 
-
-
-MotorParameters TMR_57_Motor = {
-  .resistance    = TMR_57_RESISTANCE,
-  .inductance    = TMR_57_INDUCTANCE,
-  .pole_pairs    = TMR_57_POLE_PAIR,
-  .voltage_limit = TMR_57_VOLTAGE_LIMIT,
-  .current_limit = TMR_57_PEAK_CURRENT
-};
-
-MotorParameters TBM_12913_Motor = {
-  .resistance    = TBM_12913_RESISTANCE,
-  .inductance    = TBM_12913_INDUCTANCE,
-  .pole_pairs    = TBM_12913_POLE_PAIR,
-  .voltage_limit = TBM_12913_VOLTAGE_LIMIT,
-  .current_limit = TBM_12913_PEAK_CURRENT
-};
-
-
-MotorParameters KV170_Motor = {
+MotorParameters P60_KV170_Motor = {
+  .name = "P60 KV170",
   .resistance    = KV170_RESISTANCE,
   .inductance    = KV170_INDUCTANCE,
   .pole_pairs    = KV170_POLE_PAIR,
   .voltage_limit = KV170_VOLTAGE_LIMIT,
-  .current_limit = 10.0f
+  .current_limit = KV170_LOW_SPEED_CURRENT,
+  .default_velocity = 1.0f
 };
 
-MotorParameters motors[] = { TMR_57_Motor, TBM_12913_Motor, KV170_Motor };
+MotorParameters TMR_57_Motor = {
+  .name = "TMR 57",
+  .resistance    = TMR_57_RESISTANCE,
+  .inductance    = TMR_57_INDUCTANCE,
+  .pole_pairs    = TMR_57_POLE_PAIR,
+  .voltage_limit = TMR_57_VOLTAGE_LIMIT,
+  .current_limit = TMR_57_RATED_CURRENT,
+  .default_velocity = 0.0f
+};
+
+MotorParameters TBM_12913_Motor = {
+  .name = "TBM 12913",
+  .resistance    = TBM_12913_RESISTANCE,
+  .inductance    = TBM_12913_INDUCTANCE,
+  .pole_pairs    = TBM_12913_POLE_PAIR,
+  .voltage_limit = TBM_12913_VOLTAGE_LIMIT,
+  .current_limit = TBM_12913_RATED_CURRENT,
+  .default_velocity = 0.0f
+};
+
+
+
+
+MotorParameters motors[] = {P60_KV170_Motor, TMR_57_Motor, TBM_12913_Motor };
+int activeMotorType = 0; // Default motor selection
+enum MotorType { P60_KV170, TMR_57, TBM_12913 };
 
 
 uint32_t currentMillis = 0;
@@ -105,43 +115,59 @@ LowsideCurrentSense currentSense = LowsideCurrentSense(0.0005f, 10.0f, M0_IA, M0
 MagneticSensorSPI sensor = MagneticSensorSPI(CS, 14, 0x3FFF);
 
 HardwareSerial Serial2(USART2_RX, USART2_TX);
-// Commander command = Commander(Serial2);   // Serial for command interface
-Commander command = Commander(Serial);   // Serial for command interface
-// Commander cmdDebug = Commander(Serial);
 SPIClass SPI_3(SPI_SCK, SPI_MISO, SPI_MOSI);
 
 PhaseCurrent_s current;
 float current_magnitude;
 float memory_max_current = motor.current_limit;
 float target_position = 0;
-float target_velocity = 50.0f; // rad/s   20rad/s -> ~190rpm | 3000rpm = 314rad/s
+float target_velocity = 0.0f; // rad/s   20rad/s -> ~190rpm | 3000rpm = 314rad/s
+float last_target_velocity = 0.0f;
 
-void doMotor(char* cmd) {
-  command.motor(&motor, cmd);
-  //command.target(&motor, cmd); // ok
-  //command.motion(&motor, cmd);
-}
 
-void doTarget(char* cmd) { command.scalar(&target_position, cmd); }
-void doVoltageLimit(char* cmd) { command.scalar(&motor.voltage_limit, cmd); }
-void doCurentLimit(char* cmd) { command.scalar(&motor.current_limit, cmd); }
-// void doVelocity(char* cmd) { command.scalar(&motor.velocity_limit, cmd); }
-void doVelocity(char* cmd) { command.scalar(&target_velocity, cmd); }
+
 
 
 #ifdef DEBUG
 OneButton button;
-
 
 void buttonClick() {
   Serial.println("Button Clicked!");
 }
 #endif
 
+void printActiveMotorStatus();
+void applyProfile(int idx);
+
+Commander command = Commander(Serial2);   // Serial for command interface
+void doMotor(char* cmd) {
+  int idx = atoi(cmd);
+  if(idx < 0 || idx >= sizeof(motors)/sizeof(MotorParameters)) {
+    Serial.println("Invalid motor index");
+    return;
+  }
+  if(activeMotorType == idx) {
+    Serial.println("Motor already selected");
+    return;
+  }
+
+  applyProfile(idx);
+}
+
+// void doTarget(char* cmd) { command.scalar(&target_position, cmd); }
+// void doVoltageLimit(char* cmd) { command.scalar(&motor.voltage_limit, cmd); }
+// void doCurentLimit(char* cmd) { command.scalar(&motor.current_limit, cmd); }
+// void doVelocity(char* cmd) { command.scalar(&motor.velocity_limit, cmd); }
+void doVelocity(char* cmd) { command.scalar(&target_velocity, cmd); }
+
+
+
 void setup() {
   Serial.begin(115200);
-  Serial.println("SimpleFOC STM32F405 Example");
   Serial2.begin(115200);
+
+  Serial.println("SimpleFOC STM32F405 Example");
+  
 
 #ifdef DEBUG
   pinMode(LED_BUILTIN, OUTPUT);
@@ -162,16 +188,12 @@ void setup() {
     return;
   }
   motor.linkDriver(&driver);
-  motor.voltage_limit = 48.0f;
+  motor.voltage_limit = motors[activeMotorType].voltage_limit;
+  motor.current_limit = motors[activeMotorType].current_limit; // continuous 60A
   motor.velocity_limit = 500; // limit voltage change rate
-  motor.current_limit = 30.0f; // continuous 60A
-  
-  
-
-  motor.pole_pairs = KV170_Motor.pole_pairs; ;
+  motor.pole_pairs = motors[activeMotorType].pole_pairs;
   // motor.phase_inductance = TMR_57_INDUCTANCE ; // -> FOC tuning
-  motor.phase_resistance = KV170_Motor.resistance; // milli ohm
-  // motor.controller = MotionControlType::angle_openloop;
+  motor.phase_resistance = motors[activeMotorType].resistance; // milli ohm
   motor.controller = MotionControlType::velocity_openloop; //  MAX 136 rad/s -> 1300rpm
 
 
@@ -235,11 +257,11 @@ void setup() {
 
   // motor.initFOC();
 
-  // command.decimal_places = 4; // Set number of decimal places for command output
-  // command.add('M', doMotor, "motor exemple ==> M10");
-  // motor.target = 0;
+  command.decimal_places = 4; // Set number of decimal places for command output 출력형식
+  command.add('M', doMotor, "Select motor Profile ==> M0, M1, M2");
+  motor.target = 0;
   // if (motor.motor_status != 4) { // 0 - fail initFOC
-  //   Serial2.println("ERROR:" + String(motor.motor_status));
+  //   Serial.println("ERROR:" + String(motor.motor_status));
   //   //return;
   // }
 
@@ -267,78 +289,106 @@ void loop() {
   }
   else if(currentMillis - previousMillis[2] >= 1) {
     previousMillis[2] = currentMillis;
-    if(Serial.available()) {
-    char c = Serial.read();
-    // Serial.printf("Received: %c\r\n", c);
-    switch (c)
-    {
-    case 'a':
-      target_velocity += 1.0f;
-      Serial.printf("Target velocity: %.2f rad/s\r\n", target_velocity);
-      break;
-    case 'b':
-      target_velocity -= 1.0f;
-      Serial.printf("Target velocity: %.2f rad/s\r\n", target_velocity);
-      break;
-    case 'd':
-      Serial.printf("Motor Disable\r\n");
-      target_velocity = 0.0f;
-      motor.disable();
-      break;
-    case 'e':
-      Serial.printf("Motor Enable %f \r\n", motor.phase_resistance);
-      motor.phase_resistance = TMR_100_RESISTANCE;
-      Serial.printf("Change Resistance %f \r\n", motor.phase_resistance);
-      motor.init();
-      motor.enable();
-      target_velocity = 20.0f;
-      break;
-    case 'h':
-      motor.current_limit = 5.3f;
-      Serial.printf("Current limit set to %.2f A\r\n", motor.current_limit);
-      break;
-    case 'l':
-      motor.current_limit = 2.6f;
-      Serial.printf("Current limit set to %.2f A\r\n", motor.current_limit);
-      break;
-    case 'r':
-      Serial.print("System Reset\r\n");
-      NVIC_SystemReset();
-      break;
-    default:
-      break;
+    if(Serial.available()){
+      char c = Serial.read();
+      // Serial.printf("Received: %c\r\n", c);
+      switch (c)
+      {
+      case 'a':
+        target_velocity += 1.0f;
+        Serial.printf("Target velocity: %.2f rad/s\r\n", target_velocity);
+        break;
+      case 'b':
+        target_velocity -= 1.0f;
+        Serial.printf("Target velocity: %.2f rad/s\r\n", target_velocity);
+        break;
+      case 'd':
+        Serial.printf("Motor Disable\r\n");
+        target_velocity = 0.0f;
+        motor.disable();
+        break;
+      case 'e':
+        Serial.printf("Motor Enable %f \r\n", motor.phase_resistance);
+        motor.phase_resistance = TMR_100_RESISTANCE;
+        Serial.printf("Change Resistance %f \r\n", motor.phase_resistance);
+        motor.init();
+        motor.enable();
+        // target_velocity = 20.0f;
+        break;
+      case 'h':
+        motor.current_limit = 5.3f;
+        Serial.printf("Current limit set to %.2f A\r\n", motor.current_limit);
+        break;
+      case 'l':
+        motor.current_limit = 2.6f;
+        Serial.printf("Current limit set to %.2f A\r\n", motor.current_limit);
+        break;
+      case 'r':
+        Serial.print("System Reset\r\n");
+        NVIC_SystemReset();
+        break;
+      case 'p':
+        applyProfile((activeMotorType + 1) % (sizeof(motors)/sizeof(MotorParameters)));
+        printActiveMotorStatus();
+        break;
+      default:
+        break;
+      }
     }
-    
-  }
-    
-  //   if(Serial2.available()) 
-  //   {
-  //     // int c = Serial2.read();
-  //     // Serial.printf("Received: %c\r\n", c);
-  //   }
   }
   else
   {
+
+    
+ 
+    
+
     motor.move(target_velocity);
-    // command.run();
-    
+    command.run();
+    if (fabs(target_velocity - last_target_velocity) > 0.0f) {
+      // motor.move(target_velocity);
+      Serial.printf("Move to velocity: %.2f rad/s \r\n", target_velocity);
+      last_target_velocity = target_velocity;
+
+      if(last_target_velocity == 0.0f)
+      {
+        motor.disable();
+        Serial.printf("Motor Disabled\r\n");
+      }
+      else
+      {
+        motor.enable();
+        Serial.printf("Motor Enabled\r\n");
+      }
+    }
   }
-  // motor.move(target_position);
-  
-  
 
-  
-  
-    // command.run(Serial2);
-    
-
-    // Serial1.printf("Received: %c\r\n", c);
-  
-
-  // motor.loopFOC();
-  // current = currentSense.getPhaseCurrents();
-  // current_magnitude = currentSense.getDCCurrent();
-  // command.run(Serial2);
-  // motor.move();
 }
 
+void printActiveMotorStatus()
+{
+  Serial.printf("Active Motor Type: %s\r\n", motors[activeMotorType].name);
+  Serial.printf("Phase Resistance: %.2f Ohm\r\n", motor.phase_resistance);
+  Serial.printf("Phase Inductance: %.6f H\r\n", motor.phase_inductance);
+  Serial.printf("Pole Pairs: %d\r\n", motor.pole_pairs);
+  Serial.printf("Voltage Limit: %.2f V\r\n", motor.voltage_limit);
+  Serial.printf("Current Limit: %.2f A\r\n", motor.current_limit);
+}
+
+void applyProfile(int idx)
+{
+  motor.target = 0;                 // 안전
+  delay(50);
+
+  motor.disable();
+  motor.pole_pairs       = motors[idx].pole_pairs;
+  motor.phase_resistance = motors[idx].resistance;
+  // motor.phase_inductance = motors[idx].inductance;
+  motor.current_limit    = motors[idx].current_limit;
+  motor.voltage_limit    = motors[idx].voltage_limit;
+  motor.init();
+  activeMotorType = idx;
+  
+  target_velocity = motors[idx].default_velocity;
+  Serial.printf("Applied motor profile: %s %d\r\n", motors[idx].name, target_velocity);
+}
